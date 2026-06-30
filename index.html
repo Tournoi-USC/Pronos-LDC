@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.0.0</title>
+<title>Prono LDC 26/27 v1.0.1</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -214,7 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.0.0</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.0.1</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -250,8 +250,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.0.0';
-var BUILD   = '01/07/2026';
+var VERSION = '1.0.1';
+var BUILD   = '30/06/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL'};
@@ -567,15 +567,8 @@ function pgMatchs(){
   }
 
   var banner='';
-  if(!S.user||S.user===ADMIN){
-    banner='<div class="lb2"><h3 style="margin-bottom:4px">Connectez-vous pour pronostiquer</h3>'
-     +'<p style="color:var(--muted);font-size:.79rem;margin-bottom:12px">Première fois ? Pseudo + mot de passe — compte créé automatiquement.</p>'
-     +'<div class="lf">'
-     +'<input class="fi" id="lp" placeholder="Pseudo (ex: Zizou98)" autocomplete="username">'
-     +'<div style="position:relative;flex:1;min-width:160px"><input class="fi" id="lpw" type="password" placeholder="Mot de passe" style="width:100%;padding-right:40px"><span id="tpwbtn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted)">&#128065;</span></div>'
-     +'<button class="btn-g" onclick="hLogin()">Jouer</button></div>'
-     +'<div id="lerr" style="color:var(--red);font-size:.78rem;margin-top:5px"></div></div>';
-  }
+  // Note: aucun login ici — render() bloque déjà via pgGroupLogin()/pgNoGroup()
+  // avant d'atteindre pgMatchs(), donc S.user est toujours défini à ce stade.
 
   var tabsH='<div class="tabs">';
   for(var pi=0;pi<phases.length;pi++){var p=phases[pi];tabsH+='<button class="tb'+(S.tab===p?' on':'')+'" onclick="setTab(\''+p+'\')">'+labels[p]+'</button>';}
@@ -1124,14 +1117,14 @@ function render(){
 /* ═══ NAV ═══════════════════════════════════════════════════════ */
 function renderNav(){
   var items=S.user?[
-    {p:'accueil',ic:'&#8962;',lb:'Accueil',ti:'🏠'},
-    {p:'matchs',ic:'&#128197;',lb:'Matchs',ti:'📅'},
-    {p:'classement',ic:'&#8801;',lb:'Classement',ti:'🏆'},
-    {p:'ligue',ic:'&#127944;',lb:'Phase Ligue',ti:'⚽'},
-    {p:'tableau',ic:'&#127947;',lb:'Tableau KO',ti:'🏟'},
-    {p:'profil',ic:'&#128100;',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
-  ]:[{p:'accueil',ic:'&#8962;',lb:'Connexion',ti:'🏠'}];
-  if(isAdmin())items.splice(5,0,{p:'stats',ic:'&#128202;',lb:'Stats',ti:'📊'});
+    {p:'accueil',ic:'🏠',lb:'Accueil',ti:'🏠'},
+    {p:'matchs',ic:'📅',lb:'Matchs',ti:'📅'},
+    {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
+    {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
+    {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
+    {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
+  ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
+  if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
 
   var h='';
   for(var i=0;i<items.length;i++){
