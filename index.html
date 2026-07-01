@@ -1222,18 +1222,46 @@ function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.l
 async function autoFetch(silent){
   if(!silent){
     toast('Synchronisation scores lancée...');
-    var ef=document.getElementById('sync-frame');
-    if(!ef){ef=document.createElement('iframe');ef.id='sync-frame';ef.style.display='none';document.body.appendChild(ef);}
-    ef.src=SUPABASE_URL+'/functions/v1/sync-scores?force=1';
-    setTimeout(async function(){await loadAll();render();toast('Données rechargées ✓');},4000);
+    var e=document.getElementById('synce');
+    try{
+      var resp=await fetch(SUPABASE_URL+'/functions/v1/sync-scores?force=1',{method:'POST'});
+      var data=await resp.json();
+      if(!resp.ok){
+        var msg='Erreur sync-scores ('+resp.status+'): '+(data.error||JSON.stringify(data));
+        toast(msg,'err');
+        if(e){e.textContent=msg;e.style.color='var(--red)';}
+        return;
+      }
+      await loadAll();render();
+      var okMsg='Scores : '+(data.updated||0)+' match(s) mis à jour, '+(data.notFound||0)+' non trouvé(s)';
+      toast(okMsg+' ✓');
+      if(e){e.textContent=okMsg;e.style.color='var(--grn)';}
+    }catch(err){
+      toast('Erreur réseau sync-scores: '+err.message,'err');
+      if(e){e.textContent='Erreur réseau: '+err.message;e.style.color='var(--red)';}
+    }
   }else{await loadAll();if(S.page==='classement'||S.page==='accueil')render();}
 }
 async function autoFetchOdds(){
   toast('Synchronisation cotes lancée...');
-  var ef=document.getElementById('odds-frame');
-  if(!ef){ef=document.createElement('iframe');ef.id='odds-frame';ef.style.display='none';document.body.appendChild(ef);}
-  ef.src=SUPABASE_URL+'/functions/v1/sync-odds?force=1';
-  setTimeout(async function(){await loadAll();render();toast('Cotes rechargées ✓');},4000);
+  var e=document.getElementById('oddse');
+  try{
+    var resp=await fetch(SUPABASE_URL+'/functions/v1/sync-odds?force=1',{method:'POST'});
+    var data=await resp.json();
+    if(!resp.ok){
+      var msg='Erreur sync-odds ('+resp.status+'): '+(data.error||JSON.stringify(data));
+      toast(msg,'err');
+      if(e){e.textContent=msg;e.style.color='var(--red)';}
+      return;
+    }
+    await loadAll();render();
+    var okMsg='Cotes : '+(data.updated||0)+' match(s) mis à jour ('+(data.provider||'?')+')';
+    toast(okMsg+' ✓');
+    if(e){e.textContent=okMsg;e.style.color='var(--grn)';}
+  }catch(err){
+    toast('Erreur réseau sync-odds: '+err.message,'err');
+    if(e){e.textContent='Erreur réseau: '+err.message;e.style.color='var(--red)';}
+  }
 }
 
 async function hSaveAll(){
