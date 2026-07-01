@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.0.1</title>
+<title>Prono LDC 26/27 v1.0.2</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -214,7 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.0.1</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.0.2</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -250,11 +250,11 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.0.1';
-var BUILD   = '30/06/2026';
+var VERSION = '1.0.2';
+var BUILD   = '01/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL'};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[]};
@@ -606,6 +606,40 @@ function pgMatchs(){
     notifH='<div class="notif-bar"><p>&#128276; Recevez une notification dès qu\'un score tombe</p><button class="btn-g" style="padding:7px 14px;font-size:.8rem" onclick="requestNotif()">Activer</button></div>';
   }
 
+  // Filtres équipe et date (appliqués après qf pour que les selects reflètent les résultats qf)
+  if(S.search){
+    var sq=S.search.toLowerCase();
+    filtered=filtered.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
+  }
+  if(S.searchDate){
+    filtered=filtered.filter(function(m){return m.dt===S.searchDate;});
+  }
+
+  // Construction des selects dynamiques à partir des matchs filtrés (avant search/date)
+  var allFiltered=[];
+  for(var mi2=0;mi2<M.length;mi2++){var m2=M[mi2];if(m2.ph!==S.tab)continue;allFiltered.push(m2);}
+  if(S.tab==='LIGUE'&&S.jour!=='ALL') allFiltered=allFiltered.filter(function(m){return getJournee(m.id)===S.jour;});
+
+  var teams={};
+  for(var ti2=0;ti2<allFiltered.length;ti2++){if(allFiltered[ti2].h!=='TBD')teams[allFiltered[ti2].h]=1;if(allFiltered[ti2].a!=='TBD')teams[allFiltered[ti2].a]=1;}
+  var teamOpts='<option value="">Toutes les équipes</option>';
+  Object.keys(teams).sort().forEach(function(t){teamOpts+='<option value="'+t+'"'+(S.search===t?' selected':'')+'>'+t+'</option>';});
+
+  var datesMap={};
+  for(var di=0;di<allFiltered.length;di++) datesMap[allFiltered[di].dt]=1;
+  var dateOpts='<option value="">Toutes les dates</option>';
+  Object.keys(datesMap).sort().forEach(function(d){
+    var dl=new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+    dateOpts+='<option value="'+d+'"'+(S.searchDate===d?' selected':'')+'>'+dl+'</option>';
+  });
+
+  var hasTeams=Object.keys(teams).length>0;
+  var searchH=hasTeams?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<select class="fi" id="sel-team" onchange="setSearchTeam(this.value)" oninput="setSearchTeam(this.value)" style="flex:1;min-width:160px;padding:7px 12px;font-size:.82rem">'+teamOpts+'</select>'
+    +'<select class="fi" id="sel-date" onchange="setSearchDate(this.value)" oninput="setSearchDate(this.value)" style="flex:1;min-width:160px;padding:7px 12px;font-size:.82rem">'+dateOpts+'</select>'
+    +(S.search||S.searchDate?'<button class="rsb" onclick="S.search=\'\';S.searchDate=\'\';render()" style="white-space:nowrap">✕ Effacer</button>':'')
+    +'</div>':'';
+
   var cards='';
   for(var ci=0;ci<filtered.length;ci++)cards+=cardMatch(filtered[ci]);
 
@@ -620,7 +654,7 @@ function pgMatchs(){
 
   var totalM2=M.filter(function(m){return m.ph===S.tab;}).length;
   return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; Saisissez votre pronostic sur chaque carte.</p>'
-    +notifH+banner+tabsH+jourH+qfH
+    +notifH+banner+tabsH+jourH+searchH+qfH
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
@@ -1153,10 +1187,12 @@ function renderNav(){
 }
 
 /* ═══ HANDLERS ══════════════════════════════════════════════════ */
-function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';localStorage.setItem('ldc_tab',t);render();}
-function setJour(j){S.jour=j;render();}
+function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';S.search='';S.searchDate='';localStorage.setItem('ldc_tab',t);render();}
+function setJour(j){S.jour=j;S.search='';S.searchDate='';render();}
 function setGrp(g){S.grp=g;localStorage.setItem('ldc_grp2',g);render();}
 function setQF(f){S.qf=f;render();}
+function setSearchTeam(v){S.search=v;render();}
+function setSearchDate(v){S.searchDate=v;render();}
 function tCpw(){S.cpw=!S.cpw;render();}
 function tAdm(){S.adm=!S.adm;render();}
 function go(p){S.page=p;localStorage.setItem('ldc_pg',p);render();window.scrollTo(0,0);}
