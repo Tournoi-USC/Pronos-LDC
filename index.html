@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.0.2</title>
+<title>Prono LDC 26/27 v1.1.1</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -214,7 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.0.2</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.1.1</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -241,7 +241,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 /* ── Mini client Supabase REST + WebSocket ── */
 var supabase={createClient:function(url,key){var H={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key};function rest(t,q){return url+'/rest/v1/'+t+(q?'?'+q:'');}function req(t,method,body,extraH,qs){return fetch(rest(t,qs),{method:method,headers:Object.assign({},H,extraH||{}),body:body!=null?JSON.stringify(body):undefined}).then(function(r){if(r.status===204||r.status===201)return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:null};try{var d=JSON.parse(txt);return{data:d,error:null};}catch(e){return{data:null,error:null};}});return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:r.ok?null:{message:'Empty response'}};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||d.details||JSON.stringify(d)}};}catch(e){return{data:null,error:r.ok?null:{message:txt}};}});}).catch(function(e){return{data:null,error:{message:e.message}};});}function buildQ(sel,filters,ord,single){var q='select='+(sel||'*');(filters||[]).forEach(function(f){q+='&'+f;});if(ord)q+='&order='+ord;if(single)q+='&limit=1';return q;}function tableClient(t){var _sel='*',_f=[],_ord=null;var c={select:function(s){_sel=s;return c;},eq:function(col,v){_f.push(col+'=eq.'+encodeURIComponent(v));return c;},order:function(col){_ord=col;return c;},insert:function(b){return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'return=representation'});},upsert:function(b,opts){var oc=opts&&opts.onConflict?'on_conflict='+encodeURIComponent(opts.onConflict):'';return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'resolution=merge-duplicates,return=minimal'},oc||undefined);},update:function(b){return{eq:function(col,v){return req(t,'PATCH',b,{'Prefer':'return=representation'},col+'=eq.'+encodeURIComponent(v));}};},delete:function(){return{eq:function(col,v){return req(t,'DELETE',null,{},col+'=eq.'+encodeURIComponent(v));}};},single:function(){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:Object.assign({'Accept':'application/vnd.pgrst.object+json'},H)}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||JSON.stringify(d)}};});}).catch(function(e){return{data:null,error:{message:e.message}};});},then:function(res,rej){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:H}).then(function(r){return r.text().then(function(txt){if(!txt||!txt.trim())return{data:[],error:null};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||txt}};}catch(e){return{data:[],error:null};}});}).catch(function(e){return{data:null,error:{message:e.message}};}).then(res,rej);}};return c;}
-var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
+var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
 return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};}};}};
 
 /* ═══ CONFIGURATION ═════════════════════════════════════════════ */
@@ -250,8 +250,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.0.2';
-var BUILD   = '01/07/2026';
+var VERSION = '1.1.1';
+var BUILD   = '02/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
@@ -320,22 +320,37 @@ async function chgPw(o,n){var uu=DB.userMap[S.user];if(!uu)return{ok:false,msg:'
 async function admReset(pseudo,np,pin){if(pin!==DB.config.pin)return{ok:false,msg:'PIN incorrect'};var k=pseudo.toLowerCase().trim(),uu=DB.userMap[k];if(!uu)return{ok:false,msg:'Joueur introuvable'};await sb.from('users').update({hash:hsh(np)}).eq('id',uu.id);uu.hash=hsh(np);return{ok:true};}
 
 /* ═══ PRONOS ════════════════════════════════════════════════════ */
-async function savePr(id,hv,av){if(!S.user||!sb)return;var uid=DB.userMap[S.user].id;await sb.from('pronos').upsert({user_id:uid,match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()},{onConflict:'user_id,match_id'});if(!DB.pronos[S.user])DB.pronos[S.user]={};DB.pronos[S.user][id]={h:+hv,a:+av};}
+async function savePr(id,hv,av,wp){if(!S.user||!sb)return;var uid=DB.userMap[S.user].id;var data={user_id:uid,match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()};if(wp!==undefined)data.winner_prono=wp||null;await sb.from('pronos').upsert(data,{onConflict:'user_id,match_id'});if(!DB.pronos[S.user])DB.pronos[S.user]={};DB.pronos[S.user][id]={h:+hv,a:+av,wp:wp||null};}
 function uPronos(u){if(DB.pronos[u])return DB.pronos[u];var uu=DB.userMap[u];if(uu&&DB.pronos[uu.id])return DB.pronos[uu.id];return{};}
 function getRes(id){return DB.results[id]||null;}
 async function setRes(id,hv,av){if(!sb)return;var w=null;if(hv!==''&&av!==''){if(+hv!==+av){var m2=null;for(var i=0;i<M.length;i++)if(M[i].id==id){m2=M[i];break;}if(m2)w=+hv>+av?'h':'a';}}await sb.from('results').upsert({match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()});if(w!==null){await sb.from('matches').update({winner:w}).eq('id',+id);}DB.results[id]={h:+hv,a:+av};}
 async function delRes(id){if(!sb)return;await sb.from('results').delete().eq('match_id',+id);delete DB.results[id];}
 
-function getWinner(matchId){var r=DB.results[matchId];if(!r)return null;if(r.h===r.a)return null;var m=null;for(var i=0;i<M.length;i++)if(M[i].id===matchId){m=M[i];break;}if(!m)return null;return r.h>r.a?m.h:m.a;}
+function getWinner(matchId){var r=DB.results[matchId];if(!r)return null;var m=null;for(var i=0;i<M.length;i++)if(M[i].id===matchId){m=M[i];break;}if(!m)return null;if(m.win)return m.win==='h'?m.h:m.a;if(r.h===r.a)return null;return r.h>r.a?m.h:m.a;}
 async function propagateMatch(matchId){if(!sb)return;var next=BRACKET_NEXT[matchId];if(!next)return;var winner=getWinner(matchId);if(!winner)return;var update={};update[next.side==='h'?'home':'away']=winner;await sb.from('matches').update(update).eq('id',next.next);for(var i=0;i<M.length;i++){if(M[i].id===next.next){if(next.side==='h')M[i].h=winner;else M[i].a=winner;break;}}}
 async function propagateAllWinners(){if(!sb||!isAdmin())return 0;var koIds=Object.keys(BRACKET_NEXT).map(Number),count=0;for(var i=0;i<koIds.length;i++){var winner=getWinner(koIds[i]);if(winner){await propagateMatch(koIds[i]);count++;}}return count;}
 async function saveConfig(key,val){if(!sb)return;await sb.from('config').upsert({key:key,value:val});DB.config[key]=val;}
 
 /* ═══ SCORING — Unifié côtes pour TOUS les matchs ═══════════════ */
-function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[i].oh,oa:M[i].oa,od:M[i].od,ph:M[i].ph};return null;}
+function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[i].oh,oa:M[i].oa,od:M[i].od,ph:M[i].ph,win:M[i].win||null};return null;}
 
 function calcPts(pn,r,odds){
   if(!pn||!r)return 0;
+  // Cas TAB : score nul réel + vainqueur désigné par l'admin (odds.win défini)
+  // Le joueur pronostique le score nul ET éventuellement le vainqueur aux tirs au but
+  if(odds&&odds.win){
+    var pronoNul=(pn.h===pn.a);
+    var exactNul=(pn.h===r.h&&pn.a===r.a);
+    var bonWinner=(pn.wp===odds.win);
+    var ref=odds.od; // côte du nul = référence pour les TAB
+    if(!ref)ref=odds.win==='h'?odds.oh:odds.oa; // fallback si pas de côte nul
+    if(!ref)return 0;
+    if(exactNul&&bonWinner)return Math.round(ref*10*100)/100; // score exact nul + bon vainqueur TAB
+    if(pronoNul&&bonWinner)return Math.round(ref*5*100)/100;  // prono nul + bon vainqueur TAB
+    if(pronoNul)return Math.round(ref*2*100)/100;              // prono nul seul (sans TAB correct)
+    return 0;
+  }
+  // Cas normal (victoire nette)
   var exact=(pn.h===r.h&&pn.a===r.a);
   var isNul=(r.h===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
@@ -375,10 +390,21 @@ function pts(user){
 function ptBadge(id,user){
   var pn=uPronos(user)[id],r=getRes(id);if(!pn||!r)return null;
   var odds=getMatchOdds(+id);
+  var earned=calcPts(pn,r,odds);
+  // Cas TAB
+  if(odds&&odds.win){
+    var pronoNul=(pn.h===pn.a);
+    var exactNul=(pn.h===r.h&&pn.a===r.a);
+    var bonWinner=(pn.wp===odds.win);
+    if(exactNul&&bonWinner)return{type:'ex',pts:earned};
+    if(pronoNul&&bonWinner)return{type:'okd',pts:earned};
+    if(pronoNul)return{type:'ok',pts:earned};
+    return{type:'no',pts:0};
+  }
+  // Cas normal
   var exact=(pn.h===r.h&&pn.a===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
-  var earned=calcPts(pn,r,odds);
   if(exact)return{type:'ex',pts:earned};
   if(goodDiff)return{type:'okd',pts:earned};
   if(goodWinner)return{type:'ok',pts:earned};
@@ -686,7 +712,27 @@ function cardMatch(m){
       else if(ptb.type==='ok')badgeH='<span class="badge ok">&#10003; +'+ptb.pts+'pts</span>';
       else badgeH='<span class="badge no">&#10007; 0pt</span>';
     }
-    pronoBlock='<div class="pr"><input class="pi" type="number" min="0" max="20" id="ph'+m.id+'" value="'+(pn?pn.h:'')+'" placeholder="?"'+dis+'><span style="color:var(--muted)">-</span><input class="pi" type="number" min="0" max="20" id="pa'+m.id+'" value="'+(pn?pn.a:'')+'" placeholder="?"'+dis+'>'+badgeH+'</div>';
+    pronoBlock='<div class="pr"><input class="pi" type="number" min="0" max="20" id="ph'+m.id+'" value="'+(pn?pn.h:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')"><span style="color:var(--muted)">-</span><input class="pi" type="number" min="0" max="20" id="pa'+m.id+'" value="'+(pn?pn.a:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')">'+badgeH+'</div>';
+    // Menu TAB joueur : KO uniquement (barrages, 8es, quarts, demis, finale)
+    // En phase de ligue, un nul reste un nul — pas de prolongations ni TAB
+    if(!started&&m.ph!=='LIGUE'){
+      var curWp=pn?pn.wp||'':'';
+      var phVal=pn?pn.h:'',paVal=pn?pn.a:'';
+      var pronoNul=(phVal!==''&&paVal!==''&&+phVal===+paVal);
+      if(pronoNul||curWp){
+        pronoBlock+='<div style="display:flex;align-items:center;gap:6px;margin-top:4px">'
+          +'<span style="font-size:.7rem;color:var(--muted)">⚽ TAB:</span>'
+          +'<select id="pwp'+m.id+'"'+dis+' style="flex:1;background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;font-size:.8rem">'
+          +'<option value=""'+(curWp===''?' selected':'')+'>— Vainqueur aux TAB —</option>'
+          +'<option value="h"'+(curWp==='h'?' selected':'')+'>⚽ '+m.h+'</option>'
+          +'<option value="a"'+(curWp==='a'?' selected':'')+'>⚽ '+m.a+'</option>'
+          +'</select></div>';
+      }
+    } else if(started&&pn&&pn.wp&&m.ph!=='LIGUE'){
+      // Match KO commencé : afficher le choix TAB en lecture seule
+      var wpLabel=pn.wp==='h'?m.h:m.a;
+      pronoBlock+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px">⚽ TAB pronostiqué : <strong style="color:var(--txt)">'+wpLabel+'</strong></div>';
+    }
     if(started&&!res)pronoBlock+='<div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:4px">&#128274; Match débuté</div>';
   }else if(!S.user||S.user===ADMIN){
     pronoBlock='<div style="font-size:.73rem;color:var(--muted);text-align:right;margin-top:8px">&#128274; Connexion requise</div>';
@@ -696,13 +742,16 @@ function cardMatch(m){
   if(adminMode&&isAdmin()){
     var delBtn=res?('<button class="rsb" onclick="hDelRes('+m.id+')" style="color:var(--red)">&#10005;</button>'):'';
     adminBlock='<div class="rrow"><span style="font-size:.7rem;color:var(--muted)">&#128737; Score réel:</span><input class="ri" type="number" min="0" max="20" id="rh'+m.id+'" value="'+(res?res.h:'')+'" placeholder="0"><span style="color:var(--muted)">-</span><input class="ri" type="number" min="0" max="20" id="ra'+m.id+'" value="'+(res?res.a:'')+'" placeholder="0"><button class="rsb" onclick="hSetRes('+m.id+')">&#10003;</button>'+delBtn+'</div>';
-    if(res&&res.h===res.a){
-      var curW=null;for(var mi=0;mi<M.length;mi++)if(M[mi].id==m.id){curW=M[mi].winner||null;break;}
-      adminBlock+='<div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:.72rem;color:var(--muted)">'
-        +'<span>&#128257; TAB :</span>'
-        +'<button class="rsb" style="'+(curW==='h'?'background:var(--gold);color:#fff':'')+'" onclick="hSetWinner('+m.id+',\'h\')">'+m.h+' gagne</button>'
-        +'<button class="rsb" style="'+(curW==='a'?'background:var(--gold);color:#fff':'')+'" onclick="hSetWinner('+m.id+',\'a\')">'+m.a+' gagne</button>'
-        +'</div>';
+    // Select TAB admin — phases KO uniquement (pas en phase de ligue)
+    if(m.ph!=='LIGUE'){
+      var curWin=m.win||'';
+      adminBlock+='<div class="rrow" style="margin-top:4px;gap:6px">'
+        +'<span style="font-size:.7rem;color:var(--muted)">&#127952; TAB:</span>'
+        +'<select id="rw'+m.id+'" style="flex:1;background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;font-size:.8rem" onchange="hSetWinner('+m.id+',this.value)">'
+        +'<option value=""'+(curWin===''?' selected':'')+'>— Pas de TAB —</option>'
+        +'<option value="h"'+(curWin==='h'?' selected':'')+'>⚽ '+m.h+'</option>'
+        +'<option value="a"'+(curWin==='a'?' selected':'')+'>⚽ '+m.a+'</option>'
+        +'</select></div>';
     }
   }
 
@@ -1193,6 +1242,31 @@ function setGrp(g){S.grp=g;localStorage.setItem('ldc_grp2',g);render();}
 function setQF(f){S.qf=f;render();}
 function setSearchTeam(v){S.search=v;render();}
 function setSearchDate(v){S.searchDate=v;render();}
+function hPronoChange(id){
+  var m=null;for(var i=0;i<M.length;i++)if(M[i].id===+id){m=M[i];break;}
+  if(!m||m.ph==='LIGUE')return; // pas de TAB en phase de ligue
+  var hv=document.getElementById('ph'+id)?document.getElementById('ph'+id).value:'';
+  var av=document.getElementById('pa'+id)?document.getElementById('pa'+id).value:'';
+  var existing=document.getElementById('pwp'+id);
+  var isNul=hv!==''&&av!==''&&+hv===+av;
+  if(isNul&&!existing){
+    var prDiv=document.getElementById('ph'+id);
+    if(!prDiv)return;
+    var container=prDiv.closest('.pr');
+    if(!container)return;
+    var div=document.createElement('div');
+    div.style='display:flex;align-items:center;gap:6px;margin-top:4px';
+    div.innerHTML='<span style="font-size:.7rem;color:var(--muted)">⚽ TAB:</span>'
+      +'<select id="pwp'+id+'" style="flex:1;background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;font-size:.8rem">'
+      +'<option value="">— Vainqueur aux TAB —</option>'
+      +'<option value="h">⚽ '+m.h+'</option>'
+      +'<option value="a">⚽ '+m.a+'</option>'
+      +'</select>';
+    container.parentNode.insertBefore(div,container.nextSibling);
+  }else if(!isNul&&existing){
+    existing.parentNode.remove();
+  }
+}
 function tCpw(){S.cpw=!S.cpw;render();}
 function tAdm(){S.adm=!S.adm;render();}
 function go(p){S.page=p;localStorage.setItem('ldc_pg',p);render();window.scrollTo(0,0);}
@@ -1204,7 +1278,7 @@ function toast(msg,type){var t=document.createElement('div');t.className='toast'
 async function hLogin(){var p=gv('lp').trim(),pw=gv('lpw');var r=await doLogin(p,pw);if(r.ok){toast('Bienvenue '+psd(S.user)+' !');render();}else{var e=document.getElementById('lerr');if(e)e.textContent=r.msg;}}
 async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}await setRes(id,hv,av);if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Score enregistré ✓');render();}
 async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}await delRes(id);toast('Score supprimé');render();}
-async function hSetWinner(id,side){if(!isAdmin())return;await sb.from('matches').update({winner:side}).eq('id',+id);for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].winner=side;break;}if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Qualifié propagé ✓');render();}
+async function hSetWinner(id,val){if(!isAdmin()||!sb)return;var w=val||null;await sb.from('matches').update({winner:w}).eq('id',+id);for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].win=w;break;}if(w&&BRACKET_NEXT[+id])await propagateMatch(+id);toast(w?'Vainqueur TAB : '+(w==='h'?M.find(function(m){return m.id===+id;}).h:M.find(function(m){return m.id===+id;}).a)+' ✓':'TAB effacé');render();}
 async function hPropagateAll(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('prope');if(e)e.textContent='Propagation en cours...';var count=await propagateAllWinners();render();var msg=count>0?count+' match(s) propagé(s) ✓':'Aucun résultat KO à propager';toast(msg);if(e)e.textContent=msg;}
 async function hCpw(){var o=gv('opw'),n=gv('npw'),r=await chgPw(o,n);if(r.ok){toast('Mot de passe modifié ✓');S.cpw=false;render();}else{var e=document.getElementById('cpwe');if(e)e.textContent=r.msg;}}
 async function hAdmReset(){var p=gv('ap'),n=gv('anp'),pin=gv('apin'),r=await admReset(p,n,pin),e=document.getElementById('ae');if(e){e.textContent=r.ok?'Réinitialisé !':r.msg;e.style.color=r.ok?'var(--grn)':'var(--red)';}if(r.ok)toast('Mot de passe réinitialisé ✓');}
@@ -1304,7 +1378,18 @@ async function hSaveAll(){
   if(!S.user||S.user===ADMIN||!sb)return;
   var uu=DB.userMap[S.user];if(!uu){toast('Session expirée','err');return;}
   var uid=uu.id,records=[],saved=0;
-  for(var mi=0;mi<M.length;mi++){var m=M[mi];var hEl=document.getElementById('ph'+m.id),aEl=document.getElementById('pa'+m.id);if(!hEl||!aEl||hEl.value===''||aEl.value==='')continue;if(hEl.disabled||aEl.disabled)continue;records.push({user_id:uid,match_id:m.id,home_score:+hEl.value,away_score:+aEl.value,updated_at:new Date().toISOString()});if(!DB.pronos[S.user])DB.pronos[S.user]={};DB.pronos[S.user][m.id]={h:+hEl.value,a:+aEl.value};saved++;}
+  for(var mi=0;mi<M.length;mi++){
+    var m=M[mi];
+    var hEl=document.getElementById('ph'+m.id),aEl=document.getElementById('pa'+m.id);
+    if(!hEl||!aEl||hEl.value===''||aEl.value==='')continue;
+    if(hEl.disabled||aEl.disabled)continue;
+    var wpEl=document.getElementById('pwp'+m.id);
+    var wp=wpEl?wpEl.value||null:null;
+    records.push({user_id:uid,match_id:m.id,home_score:+hEl.value,away_score:+aEl.value,winner_prono:wp,updated_at:new Date().toISOString()});
+    if(!DB.pronos[S.user])DB.pronos[S.user]={};
+    DB.pronos[S.user][m.id]={h:+hEl.value,a:+aEl.value,wp:wp};
+    saved++;
+  }
   if(!records.length){toast('Aucun pronostic à sauvegarder','info');return;}
   try{
     var resp=await fetch(SUPABASE_URL+'/rest/v1/pronos?on_conflict=user_id,match_id',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(records)});
@@ -1355,11 +1440,11 @@ async function loadAll(){
     DB.pronos={};
     for(var i=0;i<users.length;i++){var u_=users[i];DB.pronos[u_.id]={};DB.pronos[u_.pseudo_key]=DB.pronos[u_.id];}
     var knownIds={};for(var j=0;j<users.length;j++)knownIds[users[j].id]=users[j];
-    for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.id])DB.pronos[owner.id]={};DB.pronos[owner.id][p.match_id]={h:p.home_score,a:p.away_score};if(!DB.pronos[owner.pseudo_key]||DB.userMap[owner.pseudo_key]&&DB.userMap[owner.pseudo_key].id===owner.id)DB.pronos[owner.pseudo_key]=DB.pronos[owner.id];}}
+    for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.id])DB.pronos[owner.id]={};DB.pronos[owner.id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};if(!DB.pronos[owner.pseudo_key]||DB.userMap[owner.pseudo_key]&&DB.userMap[owner.pseudo_key].id===owner.id)DB.pronos[owner.pseudo_key]=DB.pronos[owner.id];}}
     DB.results={};for(var i=0;i<results.length;i++)DB.results[results[i].match_id]={h:results[i].home_score,a:results[i].away_score};
     for(var i=0;i<config.length;i++)DB.config[config[i].key]=config[i].value;
     var rM=await sb.from('matches').select('*').order('id');
-    if(rM.data&&rM.data.length>0){M=rM.data.map(function(r){return{id:r.id,ph:r.phase,gr:r.grp,dt:r.dt,ti:r.ti,h:r.home,a:r.away,v:r.venue,oh:r.odds_h?+r.odds_h:null,oa:r.odds_a?+r.odds_a:null,od:r.odds_d?+r.odds_d:null,winner:r.winner||null};});}
+    if(rM.data&&rM.data.length>0){M=rM.data.map(function(r){return{id:r.id,ph:r.phase,gr:r.grp,dt:r.dt,ti:r.ti,h:r.home,a:r.away,v:r.venue,oh:r.odds_h?+r.odds_h:null,oa:r.odds_a?+r.odds_a:null,od:r.odds_d?+r.odds_d:null,win:r.winner||null};});}
   }catch(e){toast('Erreur chargement: '+e.message,'err');}
 }
 
@@ -1368,7 +1453,7 @@ async function reloadPronos(){
   var r=await sb.from('pronos').select('*');var pronos=r.data||[];
   var knownIds={};for(var j=0;j<DB.users.length;j++)knownIds[DB.users[j].id]=DB.users[j];
   for(var k in DB.pronos)DB.pronos[k]={};
-  for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.pseudo_key])DB.pronos[owner.pseudo_key]={};DB.pronos[owner.pseudo_key][p.match_id]={h:p.home_score,a:p.away_score};}}
+  for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.pseudo_key])DB.pronos[owner.pseudo_key]={};DB.pronos[owner.pseudo_key][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};}}
 }
 
 function setupRealtime(){
@@ -1384,6 +1469,24 @@ function setupRealtime(){
       })
       .on('postgres_changes',{event:'*',schema:'public',table:'pronos'},function(){
         setTimeout(function(){reloadPronos().then(function(){if(S.page==='classement'||S.page==='accueil')render();});},0);
+      })
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches'},function(payload){
+        setTimeout(function(){
+          var d=payload.new;if(!d||!d.id)return;
+          // Mettre à jour le match correspondant dans M[] sans recharger tout
+          for(var i=0;i<M.length;i++){
+            if(M[i].id===d.id){
+              if(d.home!==undefined) M[i].h=d.home;
+              if(d.away!==undefined) M[i].a=d.away;
+              if(d.odds_h!==undefined) M[i].oh=d.odds_h?+d.odds_h:null;
+              if(d.odds_a!==undefined) M[i].oa=d.odds_a?+d.odds_a:null;
+              if(d.odds_d!==undefined) M[i].od=d.odds_d?+d.odds_d:null;
+              if(d.winner!==undefined) M[i].win=d.winner||null;
+              break;
+            }
+          }
+          render();
+        },0);
       })
       .subscribe();
   }catch(e){console.warn('Realtime:',e.message);}
@@ -1427,26 +1530,36 @@ init();
       <h3 style="margin:0;font-size:1.1rem">📋 Règles du jeu — LDC 26/27</h3>
       <button onclick="hideRules()" style="background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:12px;font-size:.9rem">
-      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:12px">
-        <div style="color:var(--grn);font-weight:600;margin-bottom:6px">✓ Bon résultat</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:.88rem">
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--grn);font-weight:600;margin-bottom:4px">✓ Bon résultat</div>
         <div style="color:var(--txt)">Bon vainqueur (ou nul correct) → <strong>côte × 2</strong></div>
       </div>
-      <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:12px">
-        <div style="color:var(--grn);font-weight:600;margin-bottom:6px">≈ Bon résultat + bonne différence de buts</div>
+      <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--grn);font-weight:600;margin-bottom:4px">≈ Bon résultat + bonne différence</div>
         <div style="color:var(--txt)">Même écart exact → <strong>côte × 5</strong></div>
       </div>
-      <div style="background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);border-radius:8px;padding:12px">
-        <div style="color:var(--gold);font-weight:600;margin-bottom:6px">🎯 Score exact</div>
+      <div style="background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--gold);font-weight:600;margin-bottom:4px">🎯 Score exact</div>
         <div style="color:var(--txt)">Score parfait → <strong>côte × 10</strong></div>
       </div>
-      <div style="border-top:1px solid var(--bdr);padding-top:10px;font-size:.78rem;color:var(--muted);text-align:center">
+      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px">
+        <div style="color:#f87171;font-weight:600;margin-bottom:6px">⚽ Matchs nuls (TAB)</div>
+        <div style="color:var(--txt);font-size:.82rem;display:flex;flex-direction:column;gap:4px">
+          <div>Prono nul + bon vainqueur TAB → <strong>côte nul × 5</strong></div>
+          <div>Score exact nul + bon vainqueur TAB → <strong>côte nul × 10</strong></div>
+          <div>Prono nul seul (sans TAB correct) → <strong>côte nul × 2</strong></div>
+          <div style="color:var(--muted);font-size:.75rem;margin-top:2px">L'admin saisit le vainqueur aux tirs au but. Le joueur choisit son pronostic TAB via le menu ⚽ qui apparaît quand il saisit un score nul.</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--bdr);padding-top:8px;font-size:.75rem;color:var(--muted);text-align:center">
         Cotes Pinnacle (OddsPapi) · valables pour <strong>tous</strong> les matchs LDC<br>
-        Score pris en compte : 90 min + prolongations · TAB ignoré pour les points
+        Score pris en compte : 90 min + prolongations
       </div>
     </div>
   </div>
 </div>
+
 
 
 </body>
