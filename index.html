@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.1.1</title>
+<title>Prono LDC 26/27 v1.2.0</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -206,6 +206,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ldc-dot{width:10px;height:10px;border-radius:50%}
 .ldc-dot.d8{background:var(--grn)}
 .ldc-dot.bar{background:var(--gold)}
+/* Bloc filtres sticky — desktop uniquement */
+.matchs-sticky{
+  position:sticky;
+  top:var(--ban);
+  z-index:50;
+  background:var(--bg);
+  padding:8px 0 10px;
+  margin-bottom:4px;
+  border-bottom:1px solid var(--bdr);
+}
+@media(max-width:768px){
+  .matchs-sticky{
+    position:static;
+    border-bottom:none;
+    padding:0;
+  }
+}
 </style>
 </head>
 <body>
@@ -214,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.1.1</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.0</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -241,7 +258,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 /* ── Mini client Supabase REST + WebSocket ── */
 var supabase={createClient:function(url,key){var H={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key};function rest(t,q){return url+'/rest/v1/'+t+(q?'?'+q:'');}function req(t,method,body,extraH,qs){return fetch(rest(t,qs),{method:method,headers:Object.assign({},H,extraH||{}),body:body!=null?JSON.stringify(body):undefined}).then(function(r){if(r.status===204||r.status===201)return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:null};try{var d=JSON.parse(txt);return{data:d,error:null};}catch(e){return{data:null,error:null};}});return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:r.ok?null:{message:'Empty response'}};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||d.details||JSON.stringify(d)}};}catch(e){return{data:null,error:r.ok?null:{message:txt}};}});}).catch(function(e){return{data:null,error:{message:e.message}};});}function buildQ(sel,filters,ord,single){var q='select='+(sel||'*');(filters||[]).forEach(function(f){q+='&'+f;});if(ord)q+='&order='+ord;if(single)q+='&limit=1';return q;}function tableClient(t){var _sel='*',_f=[],_ord=null;var c={select:function(s){_sel=s;return c;},eq:function(col,v){_f.push(col+'=eq.'+encodeURIComponent(v));return c;},order:function(col){_ord=col;return c;},insert:function(b){return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'return=representation'});},upsert:function(b,opts){var oc=opts&&opts.onConflict?'on_conflict='+encodeURIComponent(opts.onConflict):'';return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'resolution=merge-duplicates,return=minimal'},oc||undefined);},update:function(b){return{eq:function(col,v){return req(t,'PATCH',b,{'Prefer':'return=representation'},col+'=eq.'+encodeURIComponent(v));}};},delete:function(){return{eq:function(col,v){return req(t,'DELETE',null,{},col+'=eq.'+encodeURIComponent(v));}};},single:function(){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:Object.assign({'Accept':'application/vnd.pgrst.object+json'},H)}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||JSON.stringify(d)}};});}).catch(function(e){return{data:null,error:{message:e.message}};});},then:function(res,rej){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:H}).then(function(r){return r.text().then(function(txt){if(!txt||!txt.trim())return{data:[],error:null};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||txt}};}catch(e){return{data:[],error:null};}});}).catch(function(e){return{data:null,error:{message:e.message}};}).then(res,rej);}};return c;}
-var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
+var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
 return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};}};}};
 
 /* ═══ CONFIGURATION ═════════════════════════════════════════════ */
@@ -250,14 +267,14 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.1.1';
-var BUILD   = '02/07/2026';
+var VERSION = '1.2.0';
+var BUILD   = '04/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
-var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[]};
+var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[],confrontations:[],confrontationGroups:[]};
 var sb=null,SB_ERROR='';
 
 function initSB(){
@@ -461,6 +478,70 @@ function currentGroupName(){if(!GROUP_ID)return null;for(var i=0;i<DB.groups.len
 
 <script>
 /* ═══ PAGES ═════════════════════════════════════════════════════ */
+
+/* ═══ CONFRONTATIONS ════════════════════════════════════════ */
+
+// Ratio d'un groupe = points totaux / nombre de pronos joués
+function groupRatio(groupId){
+  var totalPts=0,totalPronos=0;
+  for(var i=0;i<DB.users.length;i++){
+    var u=DB.users[i];
+    if(u.pseudo_key===ADMIN)continue;
+    if(u.group_id!==groupId)continue;
+    var st=pts(u.id);
+    totalPts+=st.p;totalPronos+=st.pl;
+  }
+  if(!totalPronos)return 0;
+  return Math.round(totalPts/totalPronos*100)/100;
+}
+
+// Confrontations auxquelles le groupe du joueur connecté participe
+function getMyConfrontations(){
+  if(!S.user||isAdmin())return[];
+  var uu=DB.userMap[S.user];if(!uu||!uu.group_id)return[];
+  var myGid=uu.group_id;
+  var cfIds=DB.confrontationGroups.filter(function(cg){return cg.group_id===myGid;}).map(function(cg){return cg.confrontation_id;});
+  return DB.confrontations.filter(function(cf){return cfIds.indexOf(cf.id)!==-1;});
+}
+
+async function hCreateConfrontation(){
+  var name=document.getElementById('cf-name')?document.getElementById('cf-name').value.trim():'';
+  if(!name){toast('Entrez un nom pour la confrontation','err');return;}
+  var checked=document.querySelectorAll('.cf-grp-cb:checked');
+  if(checked.length<2){toast('Sélectionnez au moins 2 groupes','err');return;}
+  // Insérer la confrontation
+  var cfResp=await fetch(SUPABASE_URL+'/rest/v1/confrontations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},
+    body:JSON.stringify({name:name})
+  }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});
+  if(!cfResp.ok){toast('Erreur création confrontation','err');return;}
+  var cf=Array.isArray(cfResp.data)?cfResp.data[0]:cfResp.data;
+  // Insérer les liaisons groupe
+  var links=[];
+  checked.forEach(function(cb){links.push({confrontation_id:cf.id,group_id:cb.value});});
+  var lResp=await fetch(SUPABASE_URL+'/rest/v1/confrontation_groups',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify(links)
+  });
+  if(!lResp.ok&&lResp.status!==201&&lResp.status!==204){toast('Erreur liaison groupes','err');return;}
+  DB.confrontations.push(cf);
+  links.forEach(function(l){DB.confrontationGroups.push(l);});
+  toast('Confrontation "'+name+'" créée ✓');
+  render();
+}
+
+async function hDeleteConfrontation(cfId){
+  if(!confirm('Supprimer cette confrontation ?'))return;
+  await fetch(SUPABASE_URL+'/rest/v1/confrontations?id=eq.'+cfId,{
+    method:'DELETE',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  });
+  DB.confrontations=DB.confrontations.filter(function(c){return c.id!==cfId;});
+  DB.confrontationGroups=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id!==cfId;});
+  toast('Confrontation supprimée');render();
+}
 
 function pgSetup(){
   return '<div class="setup-box">'
@@ -680,7 +761,8 @@ function pgMatchs(){
 
   var totalM2=M.filter(function(m){return m.ph===S.tab;}).length;
   return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; Saisissez votre pronostic sur chaque carte.</p>'
-    +notifH+banner+tabsH+jourH+searchH+qfH
+    +notifH+banner
+    +'<div class="matchs-sticky">'+tabsH+jourH+searchH+qfH+'</div>'
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
@@ -1111,6 +1193,165 @@ function pgTableau(){
     +'</div></div>';
 }
 
+function pgConfrontations(){
+  if(!sb)return pgSetup();
+  if(!S.cfTab)S.cfTab='equipes'; // onglet actif : 'equipes' ou 'individuel'
+
+  // Confrontations visibles selon le profil
+  var visibleCFs;
+  if(isAdmin()){
+    visibleCFs=DB.confrontations;
+  }else{
+    visibleCFs=getMyConfrontations();
+    if(!visibleCFs.length)return '<div class="pt">⚔️ ÉQUIPES</div><div class="empty" style="margin-top:32px">Votre équipe ne participe à aucune confrontation pour le moment.</div>';
+  }
+
+  // ─── Panneau admin : création / suppression ────────────────
+  var adminPanel='';
+  if(isAdmin()){
+    var grpChecks='';
+    for(var gi=0;gi<DB.groups.length;gi++){
+      var gg=DB.groups[gi];
+      var gcnt=DB.users.filter(function(u){return u.group_id===gg.id&&u.pseudo_key!==ADMIN;}).length;
+      grpChecks+='<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:.85rem">'
+        +'<input type="checkbox" class="cf-grp-cb" value="'+gg.id+'" style="accent-color:var(--gold);width:16px;height:16px">'
+        +gg.name+' <span style="color:var(--muted);font-size:.75rem">('+gcnt+' joueur(s))</span>'
+        +'</label>';
+    }
+    if(!DB.groups.length)grpChecks='<p style="color:var(--muted);font-size:.8rem">Aucune équipe créée.</p>';
+    var existList='';
+    if(DB.confrontations.length){
+      for(var ci=0;ci<DB.confrontations.length;ci++){
+        var cf=DB.confrontations[ci];
+        var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===cf.id;}).map(function(cg){return cg.group_id;});
+        var cfGNames=cfGids.map(function(gid){for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid)return DB.groups[j].name;return gid;}).join(' · ');
+        existList+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+          +'<div><strong>'+cf.name+'</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+cfGNames+'</div></div>'
+          +'<button class="rsb" onclick="hDeleteConfrontation(\''+cf.id+'\')" style="color:var(--red)">🗑 Supprimer</button>'
+          +'</div>';
+      }
+    }else{
+      existList='<p style="color:var(--muted);font-size:.8rem;margin-bottom:8px">Aucune confrontation créée.</p>';
+    }
+    adminPanel='<div class="adm-pan" style="margin-bottom:24px">'
+      +'<h4 style="margin-bottom:12px">⚔️ Gestion des confrontations</h4>'
+      +existList
+      +'<hr class="hr2">'
+      +'<h4 style="margin-bottom:10px">+ Nouvelle confrontation</h4>'
+      +'<div style="display:flex;flex-direction:column;gap:10px">'
+      +'<input class="fi" id="cf-name" placeholder="Nom de la confrontation (ex: Amis vs Bureau)">'
+      +'<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:12px">'
+      +'<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Équipes participantes (min. 2) :</div>'
+      +grpChecks+'</div>'
+      +'<button class="btn-g" onclick="hCreateConfrontation()">Créer la confrontation</button>'
+      +'</div></div>';
+  }
+
+  // ─── Onglets ────────────────────────────────────────────────
+  var cfTabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
+    +'<button class="tb'+(S.cfTab==='equipes'?' on':'')+'" onclick="S.cfTab=\'equipes\';render()">⚔️ Équipes</button>'
+    +'<button class="tb'+(S.cfTab==='individuel'?' on':'')+'" onclick="S.cfTab=\'individuel\';render()">🏆 Classement individuel</button>'
+    +'</div>';
+
+  // ─── Onglet ÉQUIPES ─────────────────────────────────────────
+  var cfBlocks='';
+  if(S.cfTab==='equipes'){
+    for(var cfi=0;cfi<visibleCFs.length;cfi++){
+      var cf=visibleCFs[cfi];
+      var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===cf.id;}).map(function(cg){return cg.group_id;});
+      var cfGroups=[];
+      for(var gi2=0;gi2<cfGids.length;gi2++){
+        var gid=cfGids[gi2];
+        var gname='';for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid){gname=DB.groups[j].name;break;}
+        var gcnt2=DB.users.filter(function(u){return u.group_id===gid&&u.pseudo_key!==ADMIN;}).length;
+        var totalPts2=0,totalPronos2=0;
+        for(var ui=0;ui<DB.users.length;ui++){
+          var uu2=DB.users[ui];if(uu2.pseudo_key===ADMIN||uu2.group_id!==gid)continue;
+          var st2=pts(uu2.id);totalPts2+=st2.p;totalPronos2+=st2.pl;
+        }
+        // Ratio : points totaux / pronos joués (ex: 1850000/1000 → 1850 pts)
+        var ratio2=totalPronos2>0?Math.round(totalPts2/totalPronos2*100)/100:0;
+        cfGroups.push({gid:gid,name:gname,cnt:gcnt2,totalPts:Math.round(totalPts2),totalPronos:totalPronos2,ratio:ratio2});
+      }
+      cfGroups.sort(function(a,b){return b.ratio-a.ratio||b.totalPts-a.totalPts;});
+      var myGid2=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
+      var medals=['🥇','🥈','🥉'];
+      var rows='';
+      for(var ri=0;ri<cfGroups.length;ri++){
+        var cg=cfGroups[ri];
+        var isMe=(cg.gid===myGid2);
+        var medal=ri<3?medals[ri]:(ri+1)+'.';
+        var bg=isMe?'background:rgba(26,86,219,.08);border-color:var(--gold)':'';
+        rows+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;'+bg+'">'
+          +'<div style="font-size:1.4rem;min-width:32px;text-align:center">'+medal+'</div>'
+          +'<div style="flex:1">'
+          +'<div style="font-weight:700;font-size:.95rem">⚔️ '+cg.name+(isMe?' <span style="color:var(--gold);font-size:.72rem">(vous)</span>':'')+'</div>'
+          +'<div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+cg.cnt+' joueur(s) · '+cg.totalPronos+' pronos · '+cg.totalPts+' pts cumulés</div>'
+          +'</div>'
+          +'<div style="text-align:right">'
+          +'<div style="font-size:1.5rem;font-weight:900;color:var(--gold)">'+cg.ratio.toFixed(2)+'</div>'
+          +'<div style="font-size:.68rem;color:var(--muted)">pts / prono</div>'
+          +'</div>'
+          +'</div>';
+      }
+      cfBlocks+='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-bottom:20px">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+        +'<span style="font-size:1.4rem">⚔️</span>'
+        +'<div><div style="font-size:1.1rem;font-weight:800">'+cf.name+'</div>'
+        +'<div style="font-size:.75rem;color:var(--muted)">'+cfGroups.length+' équipes en compétition</div></div></div>'
+        +rows+'</div>';
+    }
+    if(!visibleCFs.length&&isAdmin())cfBlocks='<div class="empty">Aucune confrontation créée.</div>';
+
+  // ─── Onglet CLASSEMENT INDIVIDUEL ───────────────────────────
+  }else{
+    // Tous les joueurs de toutes les confrontations visibles, fusionnés
+    var allGids={};
+    for(var cfi2=0;cfi2<visibleCFs.length;cfi2++){
+      var cfGids2=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===visibleCFs[cfi2].id;}).map(function(cg){return cg.group_id;});
+      cfGids2.forEach(function(gid){allGids[gid]=1;});
+    }
+    var board2=[];
+    for(var ui2=0;ui2<DB.users.length;ui2++){
+      var uu3=DB.users[ui2];
+      if(uu3.pseudo_key===ADMIN)continue;
+      if(!allGids[uu3.group_id])continue;
+      var st3=pts(uu3.id);
+      var gname2='';for(var j2=0;j2<DB.groups.length;j2++)if(DB.groups[j2].id===uu3.group_id){gname2=DB.groups[j2].name;break;}
+      board2.push({k:uu3.pseudo_key,id:uu3.id,gid:uu3.group_id,gname:gname2,ps:uu3.pseudo_display,np:Object.keys(uPronos(uu3.id)).length,p:st3.p,ex:st3.ex,ok:st3.ok,pl:st3.pl});
+    }
+    board2.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
+    var myGid3=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
+    var rows2='';
+    for(var bi=0;bi<board2.length;bi++){
+      var u2=board2[bi];
+      var medal2=bi===0?'🥇':bi===1?'🥈':bi===2?'🥉':(bi+1);
+      var you2=u2.k===S.user?' <span style="color:var(--gold);font-size:.73rem">◀</span>':'';
+      var isMyGrp=(u2.gid===myGid3);
+      rows2+='<tr'+(u2.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
+        +'<td class="rn'+(bi<3?' t':'')+'">'+medal2+'</td>'
+        +'<td>'+u2.ps+you2+'</td>'
+        +'<td style="color:var(--gold);font-size:.75rem">'+u2.gname+'</td>'
+        +'<td class="rnc">'+u2.ex+'</td>'
+        +'<td class="rnc">'+u2.np+'</td>'
+        +'<td class="rpts">'+(Number.isInteger(u2.p)?u2.p:u2.p.toFixed(2))+'</td>'
+        +'</tr>';
+    }
+    if(!rows2){
+      cfBlocks='<div class="empty">Aucun joueur dans ces confrontations.</div>';
+    }else{
+      cfBlocks='<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
+        +'<thead><tr><th>#</th><th>Joueur</th><th>Équipe</th><th class="r">🎯 Exacts</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
+        +'<tbody>'+rows2+'</tbody></table></div>';
+    }
+  }
+
+  return '<div class="pt">⚔️ ÉQUIPES</div>'
+    +'<p class="psub">Confrontations inter-équipes &middot; ratio points&nbsp;/&nbsp;pronos joués</p>'
+    +adminPanel+cfTabsH
+    +'<div>'+cfBlocks+'</div>';
+}
+
 function pgStats(){
   if(!isAdmin())return pgAccueil();
   if(!S.statsTab)S.statsTab='global';
@@ -1187,7 +1428,7 @@ function render(){
     if(GROUP_ID&&!S.user){document.getElementById('main').innerHTML=pgGroupLogin();return;}
     if(S.page==='matchs'&&S._prevPage!=='matchs'){var activeTab=getActivePhase();if(activeTab&&activeTab!==S.tab){S.tab=activeTab;S.jour='ALL';S.qf='all';}}
     S._prevPage=S.page;
-    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,stats:pgStats};
+    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,confrontations:pgConfrontations,stats:pgStats};
     var fn=pages[S.page]||pgAccueil;
     document.getElementById('main').innerHTML=fn();
     if(S.page==='matchs')setTimeout(scrollToFirstUnscored,80);
@@ -1205,6 +1446,7 @@ function renderNav(){
     {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
     {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
     {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
+    {p:'confrontations',ic:'⚔️',lb:'Équipes',ti:'⚔️'},
     {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
   ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
   if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
@@ -1428,12 +1670,16 @@ async function loadAll(){
     var rR=await sb.from('results').select('*');
     var rC=await sb.from('config').select('*');
     var rG=await sb.from('groups').select('*').order('created_at');
+    var rCF=await sb.from('confrontations').select('*').order('created_at');
+    var rCFG=await sb.from('confrontation_groups').select('*');
     var users=rU.data||[];
     var seenIds={};users.forEach(function(u){seenIds[u.id]=true;});
     if(rUg&&rUg.data)rUg.data.forEach(function(u){if(!seenIds[u.id]){users.push(u);seenIds[u.id]=true;}});
     if(rUses&&rUses.data)rUses.data.forEach(function(u){if(!seenIds[u.id]&&(!GROUP_ID||u.group_id===GROUP_ID)){users.push(u);seenIds[u.id]=true;}});
     var pronos=rP.data||[];var results=rR.data||[];var config=rC.data||[];
     DB.groups=rG.data||[];
+    DB.confrontations=rCF.data||[];
+    DB.confrontationGroups=rCFG.data||[];
     if(GROUP_ID&&!isAdminSession){var gids=users.map(function(u){return u.id;});pronos=pronos.filter(function(p){return gids.indexOf(p.user_id)>-1;});}
     DB.users=[];DB.userMap={};
     for(var i=0;i<users.length;i++){DB.users.push(users[i]);DB.userMap[users[i].pseudo_key]=users[i];}
@@ -1488,6 +1734,20 @@ function setupRealtime(){
           render();
         },0);
       })
+      .on('postgres_changes',{event:'*',schema:'public',table:'confrontations'},function(){
+        setTimeout(async function(){
+          var rCF=await sb.from('confrontations').select('*').order('created_at');
+          DB.confrontations=rCF.data||[];
+          render();
+        },0);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'confrontation_groups'},function(){
+        setTimeout(async function(){
+          var rCFG=await sb.from('confrontation_groups').select('*');
+          DB.confrontationGroups=rCFG.data||[];
+          render();
+        },0);
+      })
       .subscribe();
   }catch(e){console.warn('Realtime:',e.message);}
 }
@@ -1516,7 +1776,7 @@ async function init(){
   if(!GROUP_ID&&S.user&&S.user!==ADMIN){var udataR=DB.userMap[S.user];if(udataR&&udataR.group_id){window.location.replace(window.location.pathname+'?g='+udataR.group_id);return;}}
   try{setupRealtime();}catch(e){console.warn('Realtime:',e);}
   var _pg=localStorage.getItem('ldc_pg'),_tb=localStorage.getItem('ldc_tab');
-  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
+  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','confrontations','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
   if(_tb)S.tab=_tb;
   render();
 }
