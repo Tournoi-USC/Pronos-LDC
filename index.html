@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.2.0</title>
+<title>Prono LDC 26/27 v1.2.1</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.0</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.1</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -267,7 +267,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.2.0';
+var VERSION = '1.2.1';
 var BUILD   = '04/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -1002,26 +1002,35 @@ function buildAdminPanel(){
     var userTableH='';
     if(!realUsers.length){userTableH='<p style="color:var(--muted);font-size:.8rem">Aucun joueur inscrit.</p>';}
     else{
-      userTableH='<div style="overflow-y:auto;max-height:320px"><table style="width:100%;border-collapse:collapse;font-size:.78rem">'
+      // Options du select équipe (communes à tous les selects)
+      var grpOpts='<option value="">— Sans équipe —</option>';
+      DB.groups.forEach(function(g){grpOpts+='<option value="'+g.id+'">'+g.name+'</option>';});
+
+      userTableH='<div style="overflow-y:auto;max-height:380px"><table style="width:100%;border-collapse:collapse;font-size:.78rem">'
         +'<thead><tr>'
         +'<th style="text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--bdr)">Pseudo</th>'
-        +'<th style="text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--bdr)">Groupe</th>'
+        +'<th style="text-align:left;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--bdr)">Équipe</th>'
         +'<th style="text-align:right;padding:6px 10px;color:var(--muted);border-bottom:1px solid var(--bdr)">Points</th>'
         +'<th style="padding:6px 10px;border-bottom:1px solid var(--bdr)"></th>'
         +'</tr></thead><tbody>';
       realUsers.forEach(function(u){
-        var ugname=u.group_id?(grpMap2[u.group_id]||u.group_id):'<span style="color:var(--muted)">—</span>';
         var upts=pts(u.id).p;
+        var selectH='<select onchange="hChangeUserGroup(\''+u.id+'\',this.value)" style="background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:6px;padding:3px 6px;font-size:.75rem;max-width:130px">'
+          +'<option value=""'+((!u.group_id)?' selected':'')+'>— Sans équipe —</option>';
+        DB.groups.forEach(function(g){
+          selectH+='<option value="'+g.id+'"'+(u.group_id===g.id?' selected':'')+'>'+g.name+'</option>';
+        });
+        selectH+='</select>';
         userTableH+='<tr style="border-bottom:1px solid var(--bdr)">'
           +'<td style="padding:6px 10px;font-weight:600">'+u.pseudo_display+'</td>'
-          +'<td style="padding:6px 10px;color:var(--gold)">'+ugname+'</td>'
+          +'<td style="padding:4px 10px">'+selectH+'</td>'
           +'<td style="padding:6px 10px;text-align:right;font-weight:700">'+upts+'</td>'
           +'<td style="padding:6px 10px;text-align:right"><span class="xbtn" data-k="'+u.pseudo_key+'" style="cursor:pointer;color:var(--muted)">&#128465;</span></td>'
           +'</tr>';
       });
       userTableH+='</tbody></table></div>';
     }
-    panelContent='<p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">'+realUsers.length+' joueur(s) inscrit(s)</p>'
+    panelContent='<p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">'+realUsers.length+' joueur(s) inscrit(s) &middot; Le select change l\'équipe immédiatement.</p>'
       +userTableH
       +'<hr class="hr2">'
       +'<h4 style="margin-bottom:8px">&#128737; Réinitialisation mdp</h4>'
@@ -1525,6 +1534,29 @@ async function hPropagateAll(){if(!isAdmin()){toast('Accès refusé','err');retu
 async function hCpw(){var o=gv('opw'),n=gv('npw'),r=await chgPw(o,n);if(r.ok){toast('Mot de passe modifié ✓');S.cpw=false;render();}else{var e=document.getElementById('cpwe');if(e)e.textContent=r.msg;}}
 async function hAdmReset(){var p=gv('ap'),n=gv('anp'),pin=gv('apin'),r=await admReset(p,n,pin),e=document.getElementById('ae');if(e){e.textContent=r.ok?'Réinitialisé !':r.msg;e.style.color=r.ok?'var(--grn)':'var(--red)';}if(r.ok)toast('Mot de passe réinitialisé ✓');}
 async function hDelUser(){if(!isAdmin()){toast('Accès refusé','err');return;}var pseudo=gv('dup').trim().toLowerCase(),pin=gv('dpin'),e=document.getElementById('de');if(!pseudo){if(e){e.textContent='Entre un pseudo.';e.style.color='var(--red)';}return;}if(pin!==DB.config.pin){if(e){e.textContent='PIN incorrect.';e.style.color='var(--red)';}return;}if(pseudo===ADMIN){if(e){e.textContent='Impossible.';e.style.color='var(--red)';}return;}var uu=DB.userMap[pseudo];if(!uu){if(e){e.textContent='Introuvable.';e.style.color='var(--red)';}return;}await sb.from('users').delete().eq('id',uu.id);DB.users=DB.users.filter(function(u){return u.id!==uu.id;});delete DB.userMap[pseudo];delete DB.pronos[pseudo];toast('Compte supprimé');render();}
+
+async function hChangeUserGroup(userId, newGroupId){
+  if(!isAdmin()||!sb)return;
+  var gid=newGroupId||null;
+  var resp=await fetch(SUPABASE_URL+'/rest/v1/users?id=eq.'+userId,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify({group_id:gid})
+  });
+  if(resp.ok||resp.status===204){
+    // Mettre à jour DB local immédiatement
+    for(var i=0;i<DB.users.length;i++){
+      if(DB.users[i].id===userId){
+        DB.users[i].group_id=gid;
+        break;
+      }
+    }
+    var gname=gid?(function(){for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid)return DB.groups[j].name;return gid;})():'aucune';
+    toast('Équipe modifiée → '+gname+' ✓');
+  }else{
+    toast('Erreur changement équipe','err');
+  }
+}
 async function hChgPin(){var o=gv('opin'),n=gv('npin'),e=document.getElementById('pe');if(o!==DB.config.pin){if(e){e.textContent='PIN actuel incorrect.';e.style.color='var(--red)';}return;}if(!n||n.length<3){if(e){e.textContent='PIN trop court.';e.style.color='var(--red)';}return;}await saveConfig('pin',n);if(e){e.textContent='PIN modifié ✓';e.style.color='var(--grn)';}}
 async function hCreateGroup(){var name=gv('new-grp').trim(),e=document.getElementById('grpe');if(!name){if(e){e.textContent='Entrez un nom.';e.style.color='var(--red)';}return;}var r=await createGroup(name);if(r.ok){toast('Groupe "'+r.group.name+'" créé ✓');var inp=document.getElementById('new-grp');if(inp)inp.value='';render();}else{if(e){e.textContent=r.msg;e.style.color='var(--red)';}}}
 async function hDelGroup(gid){if(!confirm('Supprimer ce groupe ?'))return;await deleteGroup(gid);toast('Groupe supprimé');render();}
