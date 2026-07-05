@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.2.2</title>
+<title>Prono LDC 26/27 v1.2.3</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.2</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.3</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -267,7 +267,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.2.2';
+var VERSION = '1.2.3';
 var BUILD   = '04/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -1262,96 +1262,207 @@ function pgConfrontations(){
     +'<button class="tb'+(S.cfTab==='individuel'?' on':'')+'" onclick="S.cfTab=\'individuel\';render()">🏆 Classement individuel</button>'
     +'</div>';
 
-  // ─── Onglet ÉQUIPES ─────────────────────────────────────────
+  // ─── Onglet ÉQUIPES — via RPC group_stats (aucun prono rapatrié) ──
   var cfBlocks='';
   if(S.cfTab==='equipes'){
-    for(var cfi=0;cfi<visibleCFs.length;cfi++){
-      var cf=visibleCFs[cfi];
-      var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===cf.id;}).map(function(cg){return cg.group_id;});
-      var cfGroups=[];
-      for(var gi2=0;gi2<cfGids.length;gi2++){
-        var gid=cfGids[gi2];
-        var gname='';for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid){gname=DB.groups[j].name;break;}
-        var gcnt2=DB.users.filter(function(u){return u.group_id===gid&&u.pseudo_key!==ADMIN;}).length;
-        var totalPts2=0,totalPronos2=0;
-        for(var ui=0;ui<DB.users.length;ui++){
-          var uu2=DB.users[ui];if(uu2.pseudo_key===ADMIN||uu2.group_id!==gid)continue;
-          var st2=pts(uu2.id);totalPts2+=st2.p;totalPronos2+=st2.pl;
+    // Affichage d'un spinner puis chargement async des stats via RPC
+    // On retourne d'abord le HTML avec un placeholder, puis on charge les données
+    if(!S._cfStats){
+      // Premier affichage : lancer le chargement async et afficher un spinner
+      S._cfStats='loading';
+      (async function(){
+        var statsMap={};
+        // Pour chaque groupe de chaque confrontation visible, appeler group_stats()
+        var allGids2={};
+        for(var cfi=0;cfi<visibleCFs.length;cfi++){
+          var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===visibleCFs[cfi].id;}).map(function(cg){return cg.group_id;});
+          cfGids.forEach(function(gid){allGids2[gid]=1;});
         }
-        // Ratio : points totaux / pronos joués (ex: 1850000/1000 → 1850 pts)
-        var ratio2=totalPronos2>0?Math.round(totalPts2/totalPronos2*100)/100:0;
-        cfGroups.push({gid:gid,name:gname,cnt:gcnt2,totalPts:Math.round(totalPts2),totalPronos:totalPronos2,ratio:ratio2});
-      }
-      cfGroups.sort(function(a,b){return b.ratio-a.ratio||b.totalPts-a.totalPts;});
+        var gidList=Object.keys(allGids2);
+        for(var gi=0;gi<gidList.length;gi++){
+          var gid=gidList[gi];
+          try{
+            var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/group_stats',{
+              method:'POST',
+              headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},
+              body:JSON.stringify({gid:gid})
+            });
+            var d=await r.json();
+            if(d&&d.length>0){statsMap[gid]={pts:+d[0].total_pts||0,pronos:+d[0].total_pronos||0};}
+            else if(d&&d.total_pts!==undefined){statsMap[gid]={pts:+d.total_pts||0,pronos:+d.total_pronos||0};}
+            else statsMap[gid]={pts:0,pronos:0};
+          }catch(e){statsMap[gid]={pts:0,pronos:0};}
+        }
+        // Aussi compter le nb de joueurs par groupe (depuis DB.users, toujours chargé pour son groupe)
+        // Pour les groupes adverses, on demande juste le count via l'API
+        var cntMap={};
+        for(var gi2=0;gi2<gidList.length;gi2++){
+          var gid2=gidList[gi2];
+          var localCnt=DB.users.filter(function(u){return u.group_id===gid2&&u.pseudo_key!==ADMIN;}).length;
+          if(localCnt>0){cntMap[gid2]=localCnt;}
+          else{
+            try{
+              var rc=await fetch(SUPABASE_URL+'/rest/v1/users?group_id=eq.'+gid2+'&pseudo_key=neq.adminldc&select=id',{
+                headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'count=exact','Range':'0-0'}
+              });
+              var ct=rc.headers.get('content-range');
+              cntMap[gid2]=ct?parseInt(ct.split('/')[1])||0:0;
+            }catch(e){cntMap[gid2]=0;}
+          }
+        }
+        S._cfStats={statsMap:statsMap,cntMap:cntMap};
+        render();
+      })();
+      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
+    } else if(S._cfStats==='loading'){
+      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
+    } else {
+      // Données disponibles : afficher les confrontations
+      var statsMap=S._cfStats.statsMap;
+      var cntMap=S._cfStats.cntMap;
       var myGid2=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
       var medals=['🥇','🥈','🥉'];
-      var rows='';
-      for(var ri=0;ri<cfGroups.length;ri++){
-        var cg=cfGroups[ri];
-        var isMe=(cg.gid===myGid2);
-        var medal=ri<3?medals[ri]:(ri+1)+'.';
-        var bg=isMe?'background:rgba(26,86,219,.08);border-color:var(--gold)':'';
-        rows+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;'+bg+'">'
-          +'<div style="font-size:1.4rem;min-width:32px;text-align:center">'+medal+'</div>'
-          +'<div style="flex:1">'
-          +'<div style="font-weight:700;font-size:.95rem">⚔️ '+cg.name+(isMe?' <span style="color:var(--gold);font-size:.72rem">(vous)</span>':'')+'</div>'
-          +'<div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+cg.cnt+' joueur(s) · '+cg.totalPronos+' pronos · '+cg.totalPts+' pts cumulés</div>'
-          +'</div>'
-          +'<div style="text-align:right">'
-          +'<div style="font-size:1.5rem;font-weight:900;color:var(--gold)">'+cg.ratio.toFixed(2)+'</div>'
-          +'<div style="font-size:.68rem;color:var(--muted)">pts / prono</div>'
-          +'</div>'
-          +'</div>';
+      for(var cfi=0;cfi<visibleCFs.length;cfi++){
+        var cf=visibleCFs[cfi];
+        var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===cf.id;}).map(function(cg){return cg.group_id;});
+        var cfGroups=[];
+        for(var gi3=0;gi3<cfGids.length;gi3++){
+          var gid3=cfGids[gi3];
+          var gname='';for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid3){gname=DB.groups[j].name;break;}
+          var st=statsMap[gid3]||{pts:0,pronos:0};
+          var ratio=st.pronos>0?Math.round(st.pts/st.pronos*100)/100:0;
+          cfGroups.push({gid:gid3,name:gname,cnt:cntMap[gid3]||0,totalPts:Math.round(st.pts),totalPronos:st.pronos,ratio:ratio});
+        }
+        cfGroups.sort(function(a,b){return b.ratio-a.ratio||b.totalPts-a.totalPts;});
+        var rows='';
+        for(var ri=0;ri<cfGroups.length;ri++){
+          var cg=cfGroups[ri];
+          var isMe=(cg.gid===myGid2);
+          var medal=ri<3?medals[ri]:(ri+1)+'.';
+          var bg=isMe?'background:rgba(26,86,219,.08);border-color:var(--gold)':'';
+          rows+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;'+bg+'">'
+            +'<div style="font-size:1.4rem;min-width:32px;text-align:center">'+medal+'</div>'
+            +'<div style="flex:1">'
+            +'<div style="font-weight:700;font-size:.95rem">⚔️ '+cg.name+(isMe?' <span style="color:var(--gold);font-size:.72rem">(vous)</span>':'')+'</div>'
+            +'<div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+cg.cnt+' joueur(s) · '+cg.totalPronos+' pronos · '+cg.totalPts+' pts cumulés</div>'
+            +'</div>'
+            +'<div style="text-align:right">'
+            +'<div style="font-size:1.5rem;font-weight:900;color:var(--gold)">'+cg.ratio.toFixed(2)+'</div>'
+            +'<div style="font-size:.68rem;color:var(--muted)">pts / prono</div>'
+            +'</div></div>';
+        }
+        cfBlocks+='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-bottom:20px">'
+          +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+          +'<span style="font-size:1.4rem">⚔️</span>'
+          +'<div><div style="font-size:1.1rem;font-weight:800">'+cf.name+'</div>'
+          +'<div style="font-size:.75rem;color:var(--muted)">'+cfGroups.length+' équipes en compétition</div></div></div>'
+          +rows+'</div>';
       }
-      cfBlocks+='<div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-bottom:20px">'
-        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
-        +'<span style="font-size:1.4rem">⚔️</span>'
-        +'<div><div style="font-size:1.1rem;font-weight:800">'+cf.name+'</div>'
-        +'<div style="font-size:.75rem;color:var(--muted)">'+cfGroups.length+' équipes en compétition</div></div></div>'
-        +rows+'</div>';
+      if(!visibleCFs.length&&isAdmin())cfBlocks='<div class="empty">Aucune confrontation créée.</div>';
+      // Bouton rafraîchir
+      cfBlocks='<div style="text-align:right;margin-bottom:8px"><button class="rsb" onclick="S._cfStats=null;render()">↻ Rafraîchir</button></div>'+cfBlocks;
     }
-    if(!visibleCFs.length&&isAdmin())cfBlocks='<div class="empty">Aucune confrontation créée.</div>';
 
-  // ─── Onglet CLASSEMENT INDIVIDUEL ───────────────────────────
+  // ─── Onglet CLASSEMENT INDIVIDUEL — chargement à la demande ──
   }else{
-    // Tous les joueurs de toutes les confrontations visibles, fusionnés
-    var allGids={};
-    for(var cfi2=0;cfi2<visibleCFs.length;cfi2++){
-      var cfGids2=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===visibleCFs[cfi2].id;}).map(function(cg){return cg.group_id;});
-      cfGids2.forEach(function(gid){allGids[gid]=1;});
-    }
-    var board2=[];
-    for(var ui2=0;ui2<DB.users.length;ui2++){
-      var uu3=DB.users[ui2];
-      if(uu3.pseudo_key===ADMIN)continue;
-      if(!allGids[uu3.group_id])continue;
-      var st3=pts(uu3.id);
-      var gname2='';for(var j2=0;j2<DB.groups.length;j2++)if(DB.groups[j2].id===uu3.group_id){gname2=DB.groups[j2].name;break;}
-      board2.push({k:uu3.pseudo_key,id:uu3.id,gid:uu3.group_id,gname:gname2,ps:uu3.pseudo_display,np:Object.keys(uPronos(uu3.id)).length,p:st3.p,ex:st3.ex,ok:st3.ok,pl:st3.pl});
-    }
-    board2.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
-    var myGid3=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
-    var rows2='';
-    for(var bi=0;bi<board2.length;bi++){
-      var u2=board2[bi];
-      var medal2=bi===0?'🥇':bi===1?'🥈':bi===2?'🥉':(bi+1);
-      var you2=u2.k===S.user?' <span style="color:var(--gold);font-size:.73rem">◀</span>':'';
-      var isMyGrp=(u2.gid===myGid3);
-      rows2+='<tr'+(u2.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-        +'<td class="rn'+(bi<3?' t':'')+'">'+medal2+'</td>'
-        +'<td>'+u2.ps+you2+'</td>'
-        +'<td style="color:var(--gold);font-size:.75rem">'+u2.gname+'</td>'
-        +'<td class="rnc">'+u2.ex+'</td>'
-        +'<td class="rnc">'+u2.np+'</td>'
-        +'<td class="rpts">'+(Number.isInteger(u2.p)?u2.p:u2.p.toFixed(2))+'</td>'
-        +'</tr>';
-    }
-    if(!rows2){
-      cfBlocks='<div class="empty">Aucun joueur dans ces confrontations.</div>';
-    }else{
-      cfBlocks='<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
-        +'<thead><tr><th>#</th><th>Joueur</th><th>Équipe</th><th class="r">🎯 Exacts</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
-        +'<tbody>'+rows2+'</tbody></table></div>';
+    if(!S._cfBoard){
+      S._cfBoard='loading';
+      (async function(){
+        // Trouver tous les groupes des confrontations visibles
+        var allGids={};
+        for(var cfi2=0;cfi2<visibleCFs.length;cfi2++){
+          var cfGids2=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===visibleCFs[cfi2].id;}).map(function(cg){return cg.group_id;});
+          cfGids2.forEach(function(gid){allGids[gid]=1;});
+        }
+        // Charger les users et pronos des groupes adverses (pas déjà dans DB.users)
+        var knownGids={};
+        DB.users.forEach(function(u){if(u.group_id)knownGids[u.group_id]=1;});
+        var gidsToLoad=Object.keys(allGids).filter(function(gid){return !knownGids[gid];});
+        var extraUsers=[];
+        for(var gi=0;gi<gidsToLoad.length;gi++){
+          var rU2=await sb.from('users').select('*').eq('group_id',gidsToLoad[gi]);
+          if(rU2.data)extraUsers=extraUsers.concat(rU2.data);
+        }
+        // Charger leurs pronos
+        var extraIds=extraUsers.map(function(u){return u.id;});
+        var extraPronos=[];
+        if(extraIds.length){
+          // Charger les pronos en batches de 50 ids (évite les URLs trop longues)
+          for(var bi=0;bi<extraIds.length;bi+=50){
+            var batch=extraIds.slice(bi,bi+50);
+            var rPr=await fetch(SUPABASE_URL+'/rest/v1/pronos?user_id=in.('+batch.join(',')+')',{
+              headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+            });
+            var prData=await rPr.json();
+            if(Array.isArray(prData))extraPronos=extraPronos.concat(prData);
+          }
+        }
+        // Construire le classement
+        var board2=[];
+        // Joueurs déjà dans DB.users (propre groupe + admin)
+        var allUsers=DB.users.concat(extraUsers);
+        var allPronos=Object.assign({},DB.pronos);
+        // Intégrer les pronos adverses dans un index temporaire
+        var extraPrMap={};
+        extraPronos.forEach(function(p){
+          if(!extraPrMap[p.user_id])extraPrMap[p.user_id]={};
+          extraPrMap[p.user_id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};
+        });
+        for(var ui=0;ui<allUsers.length;ui++){
+          var uu=allUsers[ui];
+          if(uu.pseudo_key===ADMIN)continue;
+          if(!allGids[uu.group_id])continue;
+          var userPronos=DB.pronos[uu.id]||DB.pronos[uu.pseudo_key]||extraPrMap[uu.id]||{};
+          // Calculer points manuellement pour les users adverses
+          var totalPts=0,exacts=0,bons=0,played=0;
+          var prIds=Object.keys(userPronos);
+          for(var pi=0;pi<prIds.length;pi++){
+            var pn=userPronos[prIds[pi]];
+            var r=DB.results[prIds[pi]];
+            if(!r)continue;
+            played++;
+            var odds=getMatchOdds(+prIds[pi]);
+            var earned=calcPts(pn,r,odds);
+            totalPts+=earned;
+            var exact=(pn.h===r.h&&pn.a===r.a);
+            var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
+            if(exact)exacts++;else if(goodW)bons++;
+          }
+          var gname='';for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===uu.group_id){gname=DB.groups[j].name;break;}
+          board2.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:prIds.length,p:Math.round(totalPts*100)/100,ex:exacts,ok:bons,pl:played});
+        }
+        board2.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
+        S._cfBoard=board2;
+        render();
+      })();
+      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
+    } else if(S._cfBoard==='loading'){
+      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
+    } else {
+      var board2=S._cfBoard;
+      var myGid3=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
+      var rows2='';
+      for(var bi2=0;bi2<board2.length;bi2++){
+        var u2=board2[bi2];
+        var medal2=bi2===0?'🥇':bi2===1?'🥈':bi2===2?'🥉':(bi2+1);
+        var you2=u2.k===S.user?' <span style="color:var(--gold);font-size:.73rem">◀</span>':'';
+        rows2+='<tr'+(u2.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
+          +'<td class="rn'+(bi2<3?' t':'')+'">'+medal2+'</td>'
+          +'<td>'+u2.ps+you2+'</td>'
+          +'<td style="color:var(--gold);font-size:.75rem">'+u2.gname+'</td>'
+          +'<td class="rnc">'+u2.ex+'</td>'
+          +'<td class="rnc">'+u2.np+'</td>'
+          +'<td class="rpts">'+(Number.isInteger(u2.p)?u2.p:u2.p.toFixed(2))+'</td>'
+          +'</tr>';
+      }
+      if(!rows2){
+        cfBlocks='<div class="empty">Aucun joueur dans ces confrontations.</div>';
+      }else{
+        cfBlocks='<div style="text-align:right;margin-bottom:8px"><button class="rsb" onclick="S._cfBoard=null;render()">↻ Rafraîchir</button></div>'
+          +'<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
+          +'<thead><tr><th>#</th><th>Joueur</th><th>Équipe</th><th class="r">🎯 Exacts</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
+          +'<tbody>'+rows2+'</tbody></table></div>';
+      }
     }
   }
 
@@ -1708,19 +1819,6 @@ async function loadAll(){
     var seenIds={};users.forEach(function(u){seenIds[u.id]=true;});
     if(rUg&&rUg.data)rUg.data.forEach(function(u){if(!seenIds[u.id]){users.push(u);seenIds[u.id]=true;}});
     if(rUses&&rUses.data)rUses.data.forEach(function(u){if(!seenIds[u.id]&&(!GROUP_ID||u.group_id===GROUP_ID)){users.push(u);seenIds[u.id]=true;}});
-
-    // Charger aussi les users des groupes adverses en confrontation
-    // pour que le classement individuel inter-équipes soit complet
-    if(GROUP_ID&&!isAdminSession&&rCFG.data){
-      // Trouver les groupes adverses : groupes qui partagent une confrontation avec GROUP_ID
-      var myCfIds=rCFG.data.filter(function(cg){return cg.group_id===GROUP_ID;}).map(function(cg){return cg.confrontation_id;});
-      var adverseGids=rCFG.data.filter(function(cg){return myCfIds.indexOf(cg.confrontation_id)!==-1&&cg.group_id!==GROUP_ID;}).map(function(cg){return cg.group_id;});
-      var uniqueAdverseGids=[...new Set(adverseGids)];
-      for(var ai=0;ai<uniqueAdverseGids.length;ai++){
-        var rAdverse=await sb.from('users').select('*').eq('group_id',uniqueAdverseGids[ai]);
-        if(rAdverse.data)rAdverse.data.forEach(function(u){if(!seenIds[u.id]){users.push(u);seenIds[u.id]=true;}});
-      }
-    }
     var pronos=rP.data||[];var results=rR.data||[];var config=rC.data||[];
     DB.groups=rG.data||[];
     DB.confrontations=rCF.data||[];
