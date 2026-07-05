@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.2.4</title>
+<title>Prono LDC 26/27 v1.3.0</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.4</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.0</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -258,7 +258,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 /* ── Mini client Supabase REST + WebSocket ── */
 var supabase={createClient:function(url,key){var H={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key};function rest(t,q){return url+'/rest/v1/'+t+(q?'?'+q:'');}function req(t,method,body,extraH,qs){return fetch(rest(t,qs),{method:method,headers:Object.assign({},H,extraH||{}),body:body!=null?JSON.stringify(body):undefined}).then(function(r){if(r.status===204||r.status===201)return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:null};try{var d=JSON.parse(txt);return{data:d,error:null};}catch(e){return{data:null,error:null};}});return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:r.ok?null:{message:'Empty response'}};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||d.details||JSON.stringify(d)}};}catch(e){return{data:null,error:r.ok?null:{message:txt}};}});}).catch(function(e){return{data:null,error:{message:e.message}};});}function buildQ(sel,filters,ord,single){var q='select='+(sel||'*');(filters||[]).forEach(function(f){q+='&'+f;});if(ord)q+='&order='+ord;if(single)q+='&limit=1';return q;}function tableClient(t){var _sel='*',_f=[],_ord=null;var c={select:function(s){_sel=s;return c;},eq:function(col,v){_f.push(col+'=eq.'+encodeURIComponent(v));return c;},order:function(col){_ord=col;return c;},insert:function(b){return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'return=representation'});},upsert:function(b,opts){var oc=opts&&opts.onConflict?'on_conflict='+encodeURIComponent(opts.onConflict):'';return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'resolution=merge-duplicates,return=minimal'},oc||undefined);},update:function(b){return{eq:function(col,v){return req(t,'PATCH',b,{'Prefer':'return=representation'},col+'=eq.'+encodeURIComponent(v));}};},delete:function(){return{eq:function(col,v){return req(t,'DELETE',null,{},col+'=eq.'+encodeURIComponent(v));}};},single:function(){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:Object.assign({'Accept':'application/vnd.pgrst.object+json'},H)}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||JSON.stringify(d)}};});}).catch(function(e){return{data:null,error:{message:e.message}};});},then:function(res,rej){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:H}).then(function(r){return r.text().then(function(txt){if(!txt||!txt.trim())return{data:[],error:null};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||txt}};}catch(e){return{data:[],error:null};}});}).catch(function(e){return{data:null,error:{message:e.message}};}).then(res,rej);}};return c;}
-var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
+var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
 return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};}};}};
 
 /* ═══ CONFIGURATION ═════════════════════════════════════════════ */
@@ -267,8 +267,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.2.4';
-var BUILD   = '04/07/2026';
+var VERSION = '1.3.0';
+var BUILD   = '05/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
@@ -297,6 +297,7 @@ var BRACKET_NEXT = {
 /* ═══ UTILITAIRES ═══════════════════════════════════════════════ */
 function hsh(s){var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h)^s.charCodeAt(i);return(h>>>0).toString(16);}
 function psd(k){return DB.userMap[k]?DB.userMap[k].pseudo_display:k;}
+function avt(k){return DB.userMap[k]&&DB.userMap[k].avatar?DB.userMap[k].avatar:'⚽';}
 function isAdmin(){return S.user===ADMIN;}
 function flag(f){return '';}
 function gv(id){var el=document.getElementById(id);return el?el.value:'';}
@@ -312,24 +313,62 @@ function getJournee(matchId){
 }
 
 /* ═══ AUTH ══════════════════════════════════════════════════════ */
-async function doLogin(pseudo,pw){
+async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   if(!pseudo||!pw)return{ok:false,msg:'Remplis tous les champs.'};
   if(!sb)return{ok:false,msg:'Supabase non configuré.'};
   var k=pseudo.toLowerCase().trim(),h=hsh(pw);
+  var gid=groupId||GROUP_ID||null;
+
+  // Chercher si l'utilisateur existe
   var existing=null;
-  for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===k&&(k===ADMIN||u.group_id===GROUP_ID)){existing=u;break;}}
-  if(existing){if(existing.hash!==h)return{ok:false,msg:'Mot de passe incorrect.'};}
-  else{
-    var gid=(k===ADMIN)?null:GROUP_ID;
-    var insertRes=await fetch(SUPABASE_URL+'/rest/v1/users',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},body:JSON.stringify({pseudo_key:k,pseudo_display:pseudo.trim(),hash:h,group_id:gid})}).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});
-    if(!insertRes.ok){
-      var grpF=GROUP_ID?'&group_id=eq.'+encodeURIComponent(GROUP_ID):'&group_id=is.null';
-      var fetchRes=await fetch(SUPABASE_URL+'/rest/v1/users?pseudo_key=eq.'+encodeURIComponent(k)+grpF+'&select=*',{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}}).then(function(r){return r.json();});
-      if(!fetchRes||!fetchRes.length)return{ok:false,msg:'Erreur: '+(insertRes.data.message||'')};
-      var newUser=fetchRes[0];DB.users.push(newUser);DB.userMap[k]=newUser;DB.pronos[k]={};
-    }else{var nu=Array.isArray(insertRes.data)?insertRes.data[0]:insertRes.data;DB.users.push(nu);DB.userMap[k]=nu;DB.pronos[k]={};}
+  if(GROUP_ID){
+    for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===k&&(k===ADMIN||u.group_id===GROUP_ID)){existing=u;break;}}
+  } else {
+    for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===k){existing=u;break;}}
+    if(!existing){
+      var fetchAny=await fetch(SUPABASE_URL+'/rest/v1/users?pseudo_key=eq.'+encodeURIComponent(k)+'&select=*&limit=1',
+        {headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}}).then(function(r){return r.json();});
+      if(fetchAny&&fetchAny.length)existing=fetchAny[0];
+    }
   }
-  S.user=k;localStorage.setItem('ldc_ses',k);localStorage.setItem('ldc_grp',GROUP_ID||'');
+
+  if(existing){
+    if(existing.hash!==h)return{ok:false,msg:'Mot de passe incorrect.'};
+    if(!DB.userMap[k]){DB.users.push(existing);DB.userMap[k]=existing;DB.pronos[k]={};}
+    S.user=k;
+    localStorage.setItem('ldc_ses',k);
+    localStorage.setItem('ldc_grp',existing.group_id||'');
+    if(!GROUP_ID&&k!==ADMIN&&existing.group_id){
+      window.location.replace(window.location.pathname+'?g='+existing.group_id);
+      return{ok:true};
+    }
+    if(!GROUP_ID&&k!==ADMIN&&!existing.group_id)
+      return{ok:false,msg:'Votre compte n\'est assigné à aucune équipe. Contactez l\'admin.'};
+    return{ok:true};
+  }
+
+  // Nouveau compte : nécessite un groupe
+  if(!gid&&k!==ADMIN)return{ok:false,msg:'Choisissez une équipe pour vous inscrire.'};
+  var displayName=pseudoDisplay||pseudo.trim();
+  var av=avatar||'⚽';
+  var body={pseudo_key:k,pseudo_display:displayName,hash:h,group_id:gid};
+  if(av)body.avatar=av;
+  var insertRes=await fetch(SUPABASE_URL+'/rest/v1/users',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},
+    body:JSON.stringify(body)
+  }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});
+  if(!insertRes.ok)
+    return{ok:false,msg:'Pseudo déjà pris dans cette équipe. Choisissez-en un autre.'};
+  var nu=Array.isArray(insertRes.data)?insertRes.data[0]:insertRes.data;
+  DB.users.push(nu);DB.userMap[k]=nu;DB.pronos[k]={};
+  S.user=k;
+  localStorage.setItem('ldc_ses',k);
+  localStorage.setItem('ldc_grp',gid||'');
+  if(!GROUP_ID&&k!==ADMIN&&gid){
+    window.location.replace(window.location.pathname+'?g='+gid);
+    return{ok:true};
+  }
   return{ok:true};
 }
 function doLogout(){S.user=null;adminMode=false;localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
@@ -558,23 +597,66 @@ function pgSetup(){
 }
 
 function pgNoGroup(){
-  if(!S.user||!isAdmin()){
-    return '<div style="max-width:380px;margin:100px auto;text-align:center">'
-      +'<div style="font-size:3rem;margin-bottom:16px">&#9917;</div>'
-      +'<h1 style="font-size:1.8rem;font-weight:900;margin-bottom:6px">PRONO LDC 26/27</h1>'
-      +'<p style="color:var(--muted);margin-bottom:24px;font-size:.88rem">Espace administrateur</p>'
-      +'<p style="font-size:.7rem;color:var(--muted);margin-bottom:16px">v'+VERSION+' &middot; '+BUILD+'</p>'
-      +'<div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:24px;text-align:left">'
-      +'<div style="display:flex;flex-direction:column;gap:12px">'
-      +'<input class="fi" id="lp" placeholder="Pseudo admin" autocomplete="username">'
-      +'<div style="position:relative"><input class="fi" id="lpw" type="password" placeholder="Mot de passe" style="width:100%;padding-right:40px">'
-      +'<span id="tpwbtn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted)">&#128065;</span></div>'
-      +'<button class="btn-g" onclick="hLogin()" style="width:100%">Connexion</button>'
-      +'<div id="lerr" style="color:var(--red);font-size:.78rem;text-align:center"></div>'
-      +'</div></div>'
-      +'</div>';
+  if(S.user&&isAdmin())return null;
+
+  // Liste des groupes pour le select d'inscription
+  var grpOpts='<option value="">-- Choisissez votre équipe --</option>';
+  for(var gi=0;gi<DB.groups.length;gi++){
+    grpOpts+='<option value="'+DB.groups[gi].id+'">'+DB.groups[gi].name+'</option>';
   }
-  return null;
+
+  // Grille d'avatars
+  var avatarList=['⚽', '🏆', '🥇', '🔥', '⚡', '🎯', '🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🌟', '💫', '🎮', '🎲', '🏅', '🥊', '🎸', '🚀'];
+  var avatarGrid='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+  for(var ai=0;ai<avatarList.length;ai++){
+    avatarGrid+='<button type="button" class="av-btn" data-av="'+avatarList[ai]+'" onclick="selectAvatar(this)" '
+      +'style="font-size:1.4rem;width:42px;height:42px;border-radius:8px;border:2px solid var(--bdr);background:var(--bg);cursor:pointer;transition:all .15s">'
+      +avatarList[ai]+'</button>';
+  }
+  avatarGrid+='</div><input id="sel-avatar" type="hidden" value="⚽">';
+
+  return '<div style="max-width:420px;margin:40px auto;text-align:center">'
+    +'<div style="font-size:3rem;margin-bottom:12px">⚽</div>'
+    +'<h1 style="font-size:1.8rem;font-weight:900;margin-bottom:4px">PRONO LDC 26/27</h1>'
+    +'<p style="color:var(--muted);font-size:.82rem;margin-bottom:24px">v'+VERSION+'</p>'
+
+    // ─ Onglets Connexion / Inscription
+    +'<div style="display:flex;gap:0;margin-bottom:0;border-radius:10px 10px 0 0;overflow:hidden;border:1px solid var(--bdr);border-bottom:none">'
+    +'<button id="tab-login" onclick="switchAuthTab(&quot;login&quot;)" style="flex:1;padding:12px;font-weight:700;font-size:.9rem;border:none;cursor:pointer;background:var(--gold);color:#fff;transition:.15s">Connexion</button>'
+    +'<button id="tab-register" onclick="switchAuthTab(&quot;register&quot;)" style="flex:1;padding:12px;font-weight:700;font-size:.9rem;border:none;cursor:pointer;background:var(--card);color:var(--muted);transition:.15s">Inscription</button>'
+    +'</div>'
+
+    +'<div style="background:var(--card);border:1px solid var(--bdr);border-top:none;border-radius:0 0 14px 14px;padding:24px;text-align:left">'
+
+    // ─ Formulaire CONNEXION
+    +'<div id="form-login">'
+    +'<p style="color:var(--muted);font-size:.78rem;margin-bottom:14px">Déjà inscrit ? Connectez-vous pour rejoindre votre équipe.</p>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<input class="fi" id="lp" placeholder="Identifiant (login)" autocomplete="username">'
+    +'<div style="position:relative"><input class="fi" id="lpw" type="password" placeholder="Mot de passe" style="width:100%;padding-right:40px"><span id="tpwbtn" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted)">👁</span></div>'
+    +'<button class="btn-g" onclick="hLogin()" style="width:100%;padding:12px">Se connecter →</button>'
+    +'<div id="lerr" style="color:var(--red);font-size:.78rem;text-align:center"></div>'
+    +'</div></div>'
+
+    // ─ Formulaire INSCRIPTION
+    +'<div id="form-register" style="display:none">'
+    +'<p style="color:var(--muted);font-size:.78rem;margin-bottom:14px">Première fois ? Créez votre compte et choisissez votre équipe.</p>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<input class="fi" id="rp-display" placeholder="Votre prénom / pseudo affiché" autocomplete="nickname">'
+    +'<input class="fi" id="rp-login" placeholder="Identifiant (login, sans espaces)" autocomplete="username">'
+    +'<div style="position:relative"><input class="fi" id="rp-pw" type="password" placeholder="Mot de passe" style="width:100%;padding-right:40px"><span onclick="var i=document.getElementById(&quot;rp-pw&quot;);i.type=i.type===&quot;password&quot;?&quot;text&quot;:&quot;password&quot;" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted)">👁</span></div>'
+    +'<select class="fi" id="rp-group" style="padding:10px 14px">'
+    +grpOpts
+    +'</select>'
+    +'<div><div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Choisissez votre avatar :</div>'
+    +avatarGrid+'</div>'
+    +'<button class="btn-g" onclick="hRegister()" style="width:100%;padding:12px">Créer mon compte →</button>'
+    +'<div id="rerr" style="color:var(--red);font-size:.78rem;text-align:center"></div>'
+    +'</div></div>'
+    +'</div>'
+
+    +'<p style="color:var(--muted);font-size:.7rem;margin-top:16px">Côte×2 bon résultat · Côte×5 bonne diff · Côte×10 score exact</p>'
+    +'</div>';
 }
 
 function pgGroupLogin(){
@@ -636,7 +718,7 @@ function pgAccueil(){
     for(var bi=0;bi<Math.min(5,board.length);bi++){
       var u=board[bi],medal=bi===0?'&#129351;':bi===1?'&#129352;':bi===2?'&#129353;':(bi+1);
       var you=u.k===S.user?' <span style="color:var(--gold);font-size:.7rem">(vous)</span>':'';
-      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+u.p+'</td></tr>';
+      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+u.p+'</td></tr>';
     }
     h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
@@ -864,7 +946,7 @@ function pgClass(){
     var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
     var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
     rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-     +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td>'+u.ps+you+'</td>'
+     +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
      +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+(Number.isInteger(u.p)?u.p:u.p.toFixed(2))+'</td></tr>';
   }
   return h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
@@ -1637,24 +1719,43 @@ function showRules(){var el=document.getElementById('rules-modal');if(el)el.styl
 function hideRules(){var el=document.getElementById('rules-modal');if(el)el.style.display='none';}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='err'?' err':type==='info'?' info':'');t.textContent=msg;document.getElementById('tc').appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},3500);}
 
+function switchAuthTab(tab){
+  var isLogin=(tab==='login');
+  document.getElementById('form-login').style.display=isLogin?'':'none';
+  document.getElementById('form-register').style.display=isLogin?'none':'';
+  document.getElementById('tab-login').style.background=isLogin?'var(--gold)':'var(--card)';
+  document.getElementById('tab-login').style.color=isLogin?'#fff':'var(--muted)';
+  document.getElementById('tab-register').style.background=isLogin?'var(--card)':'var(--gold)';
+  document.getElementById('tab-register').style.color=isLogin?'var(--muted)':'#fff';
+}
+function selectAvatar(btn){
+  document.querySelectorAll('.av-btn').forEach(function(b){b.style.borderColor='var(--bdr)';b.style.background='var(--bg)';});
+  btn.style.borderColor='var(--gold)';btn.style.background='rgba(26,86,219,.15)';
+  var inp=document.getElementById('sel-avatar');if(inp)inp.value=btn.getAttribute('data-av');
+}
+async function hRegister(){
+  var display=gv('rp-display').trim();
+  var login=gv('rp-login').trim().toLowerCase().replace(/\s+/g,'');
+  var pw=gv('rp-pw');
+  var grp=gv('rp-group');
+  var av=document.getElementById('sel-avatar')?document.getElementById('sel-avatar').value:'⚽';
+  var e=document.getElementById('rerr');
+  if(!display){if(e)e.textContent='Entrez votre prénom / pseudo affiché.';return;}
+  if(!login){if(e)e.textContent='Entrez un identifiant de connexion.';return;}
+  if(!pw||pw.length<3){if(e)e.textContent='Mot de passe trop court (min 3 caractères).';return;}
+  if(!grp){if(e)e.textContent='Choisissez une équipe.';return;}
+  if(e)e.textContent='';
+  var r=await doLogin(login,pw,grp,av,display);
+  if(!r.ok){if(e)e.textContent=r.msg;}
+  else{toast('Bienvenue '+display+' ! 🎉');render();}
+}
 async function hLogin(){
   var p=gv('lp').trim(),pw=gv('lpw');
-  var r=await doLogin(p,pw);
+  var r=await doLogin(p,pw,null,null,null);
   if(r.ok){
-    // Si on est sur la racine (pas de ?g=) et que le joueur a un groupe → rediriger
-    if(!GROUP_ID&&S.user!==ADMIN){
-      var uu=DB.userMap[S.user];
-      if(uu&&uu.group_id){
-        window.location.replace(window.location.pathname+'?g='+uu.group_id);
-        return;
-      }
-    }
-    toast('Bienvenue '+psd(S.user)+' !');
-    render();
-  }else{
-    var e=document.getElementById('lerr');
-    if(e)e.textContent=r.msg;
-  }
+    if(!GROUP_ID&&S.user!==ADMIN){var uu=DB.userMap[S.user];if(uu&&uu.group_id){window.location.replace(window.location.pathname+'?g='+uu.group_id);return;}}
+    toast('Bienvenue '+psd(S.user)+' !');render();
+  }else{var e=document.getElementById('lerr');if(e)e.textContent=r.msg;}
 }
 async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}await setRes(id,hv,av);if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Score enregistré ✓');render();}
 async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}await delRes(id);toast('Score supprimé');render();}
@@ -1906,6 +2007,24 @@ function setupRealtime(){
         setTimeout(async function(){
           var rCFG=await sb.from('confrontation_groups').select('*');
           DB.confrontationGroups=rCFG.data||[];
+          render();
+        },0);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'users'},function(){
+        setTimeout(async function(){
+          // Recharger les users visibles (propre groupe + admin)
+          var rU2=await sb.from('users').select('*');
+          if(rU2.data){
+            DB.users=[];DB.userMap={};
+            rU2.data.forEach(function(u){DB.users.push(u);DB.userMap[u.pseudo_key]=u;});
+          }
+          render();
+        },0);
+      })
+      .on('postgres_changes',{event:'*',schema:'public',table:'groups'},function(){
+        setTimeout(async function(){
+          var rG2=await sb.from('groups').select('*').order('created_at');
+          DB.groups=rG2.data||[];
           render();
         },0);
       })
