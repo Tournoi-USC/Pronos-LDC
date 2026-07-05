@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.2.3</title>
+<title>Prono LDC 26/27 v1.2.4</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.3</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.2.4</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -267,7 +267,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.2.3';
+var VERSION = '1.2.4';
 var BUILD   = '04/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -1637,7 +1637,25 @@ function showRules(){var el=document.getElementById('rules-modal');if(el)el.styl
 function hideRules(){var el=document.getElementById('rules-modal');if(el)el.style.display='none';}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='err'?' err':type==='info'?' info':'');t.textContent=msg;document.getElementById('tc').appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},3500);}
 
-async function hLogin(){var p=gv('lp').trim(),pw=gv('lpw');var r=await doLogin(p,pw);if(r.ok){toast('Bienvenue '+psd(S.user)+' !');render();}else{var e=document.getElementById('lerr');if(e)e.textContent=r.msg;}}
+async function hLogin(){
+  var p=gv('lp').trim(),pw=gv('lpw');
+  var r=await doLogin(p,pw);
+  if(r.ok){
+    // Si on est sur la racine (pas de ?g=) et que le joueur a un groupe → rediriger
+    if(!GROUP_ID&&S.user!==ADMIN){
+      var uu=DB.userMap[S.user];
+      if(uu&&uu.group_id){
+        window.location.replace(window.location.pathname+'?g='+uu.group_id);
+        return;
+      }
+    }
+    toast('Bienvenue '+psd(S.user)+' !');
+    render();
+  }else{
+    var e=document.getElementById('lerr');
+    if(e)e.textContent=r.msg;
+  }
+}
 async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}await setRes(id,hv,av);if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Score enregistré ✓');render();}
 async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}await delRes(id);toast('Score supprimé');render();}
 async function hSetWinner(id,val){if(!isAdmin()||!sb)return;var w=val||null;await sb.from('matches').update({winner:w}).eq('id',+id);for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].win=w;break;}if(w&&BRACKET_NEXT[+id])await propagateMatch(+id);toast(w?'Vainqueur TAB : '+(w==='h'?M.find(function(m){return m.id===+id;}).h:M.find(function(m){return m.id===+id;}).a)+' ✓':'TAB effacé');render();}
