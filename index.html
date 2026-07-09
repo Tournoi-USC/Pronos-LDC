@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.3.2</title>
+<title>Prono LDC 26/27 v1.3.3</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.2</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.3</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -267,7 +267,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.3.2';
+var VERSION = '1.3.3';
 var BUILD   = '05/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -1196,10 +1196,28 @@ function pgTableau(){
   function card(id){
     var m=gm(id);if(!m)return '<div class="bkc"></div>';
     var r=DB.results[id];
-    var won=r?'style="border-color:var(--grn)"':'';
-    var s1=r?'<span class="bks '+(r.h>r.a?'bkw':'')+'">'+r.h+'</span>':'';
-    var s2=r?'<span class="bks '+(r.a>r.h?'bkw':'')+'">'+r.a+'</span>':'';
-    var tabInd=r&&r.h===r.a&&m.winner?'<span style="font-size:.6rem;color:var(--gold);margin-left:4px">(TAB)</span>':'';
+    var isTab=r&&r.h===r.a&&m.win;
+    var won=r?'style="border-color:'+(isTab?'var(--gold)':'var(--grn)')+'"':'';
+
+    // Déterminer le vainqueur (score ou TAB)
+    var hWins=r&&(r.h>r.a||(isTab&&m.win==='h'));
+    var aWins=r&&(r.a>r.h||(isTab&&m.win==='a'));
+
+    // Score home
+    var s1=r?'<span class="bks '+(hWins?'bkw':'bkl')+'">'+r.h+'</span>':'';
+    // Score away
+    var s2=r?'<span class="bks '+(aWins?'bkw':'bkl')+'">'+r.a+'</span>':'';
+
+    // Indicateur TAB avec nom du vainqueur
+    var tabInd='';
+    if(isTab){
+      var tabWinner=m.win==='h'?m.h:m.a;
+      tabInd='<div style="margin-top:4px;padding:2px 6px;background:rgba(26,86,219,.15);border-radius:4px;display:flex;align-items:center;gap:4px">'
+        +'<span style="font-size:.65rem;color:var(--gold)">⚽ TAB →</span>'
+        +'<span style="font-size:.65rem;font-weight:700;color:var(--gold)">'+tabWinner+'</span>'
+        +'</div>';
+    }
+
     return '<div class="bkc" '+won+' onclick="setTab(\''+m.ph+'\');go(\'matchs\')" title="Match #'+id+'">'
       +'<div class="bkn">#'+id+' · '+fmt(m.dt)+(m.ti?' · '+m.ti:'')+'</div>'
       +'<div class="bkr">'+tn(m.h)+s1+'</div>'
@@ -1232,6 +1250,7 @@ function pgTableau(){
     +'.bkr{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;padding:2px 0;}'
     +'.bks{font-weight:700;font-size:.8rem;min-width:16px;text-align:right;color:var(--muted);}'
     +'.bkw{color:var(--gold);}'
+    +'.bkl{color:var(--muted);opacity:.45;}'
     +'.bkhead{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:0 4px 8px;white-space:nowrap;}'
     +'.bkconn-top::after{content:"";position:absolute;right:-20px;top:50%;width:20px;height:50%;border-top:1px solid var(--bdr);border-right:1px solid var(--bdr);}'
     +'.bkconn-bot::after{content:"";position:absolute;right:-20px;bottom:50%;width:20px;height:50%;border-bottom:1px solid var(--bdr);border-right:1px solid var(--bdr);}'
