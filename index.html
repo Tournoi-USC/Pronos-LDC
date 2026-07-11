@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.3.3</title>
+<title>Prono LDC 26/27 v1.3.5</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.3</span></div>
+  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.5</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -267,7 +267,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.3.3';
+var VERSION = '1.3.5';
 var BUILD   = '05/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -939,7 +939,7 @@ function cardMatch(m){
 function pgClass(){
   if(!sb)return pgSetup();
   var board=lb();
-  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--card);border:1px solid var(--gold);border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:.8rem;color:var(--gold);vertical-align:middle;margin-left:8px;padding:0;line-height:24px;font-weight:700">?</button></div><p class="psub">Classement du groupe &middot; Cliquez sur <strong style="color:var(--gold)">?</strong> pour les règles</p><div class="card" style="padding:0;margin-top:20px">';
+  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p><div class="card" style="padding:0;margin-top:20px">';
   if(!board.length)return h+'<div class="empty">Aucun participant pour le moment.</div></div>';
   var rows='';
   for(var i=0;i<board.length;i++){
@@ -1773,7 +1773,10 @@ async function hLogin(){
   var r=await doLogin(p,pw,null,null,null);
   if(r.ok){
     if(!GROUP_ID&&S.user!==ADMIN){var uu=DB.userMap[S.user];if(uu&&uu.group_id){window.location.replace(window.location.pathname+'?g='+uu.group_id);return;}}
-    toast('Bienvenue '+psd(S.user)+' !');render();
+    toast('Bienvenue '+psd(S.user)+' !');
+    // Si l'admin vient de se connecter → rattraper silencieusement les propagations manquantes
+    if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},500);
+    render();
   }else{var e=document.getElementById('lerr');if(e)e.textContent=r.msg;}
 }
 async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}await setRes(id,hv,av);if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Score enregistré ✓');render();}
@@ -1996,10 +1999,14 @@ function setupRealtime(){
             var mid=payload.new.match_id;
             DB.results[mid]={h:payload.new.home_score,a:payload.new.away_score};
             if(!isAdmin())toast('Score mis à jour ! ⚡');
-            // Propagation automatique du qualifié si c'est un match KO
-            if(BRACKET_NEXT[+mid]){
-              // Attendre que M[] soit à jour (le listener matches peut arriver après)
-              setTimeout(async function(){await propagateMatch(+mid);render();},300);
+            // Propagation uniquement si admin connecté (droits d'écriture Supabase)
+            // et uniquement si ce match est dans le bracket KO
+            // Pour les TAB : getWinner peut retourner null si matches.winner
+            // n'est pas encore mis à jour → la propagation TAB se fait dans
+            // le listener matches UPDATE ci-dessous
+            if(isAdmin()&&BRACKET_NEXT[+mid]){
+              var w=getWinner(+mid);
+              if(w)await propagateMatch(+mid);
             }
           }
           render();
@@ -2009,9 +2016,9 @@ function setupRealtime(){
         setTimeout(function(){reloadPronos().then(function(){if(S.page==='classement'||S.page==='accueil')render();});},0);
       })
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches'},function(payload){
-        setTimeout(function(){
+        setTimeout(async function(){
           var d=payload.new;if(!d||!d.id)return;
-          // Mettre à jour le match correspondant dans M[] sans recharger tout
+          // Mettre à jour M[] localement
           for(var i=0;i<M.length;i++){
             if(M[i].id===d.id){
               if(d.home!==undefined) M[i].h=d.home;
@@ -2022,6 +2029,12 @@ function setupRealtime(){
               if(d.winner!==undefined) M[i].win=d.winner||null;
               break;
             }
+          }
+          // Propagation TAB : quand sync-scores met à jour matches.winner
+          // (arrive après la mise à jour de results → cas TAB couvert ici)
+          if(isAdmin()&&d.winner&&BRACKET_NEXT[+d.id]){
+            var w2=getWinner(+d.id);
+            if(w2)await propagateMatch(+d.id);
           }
           render();
         },0);
@@ -2085,6 +2098,9 @@ async function init(){
   if(ses&&DB.userMap[ses])S.user=ses;
   if(!GROUP_ID&&S.user&&S.user!==ADMIN){var udataR=DB.userMap[S.user];if(udataR&&udataR.group_id){window.location.replace(window.location.pathname+'?g='+udataR.group_id);return;}}
   try{setupRealtime();}catch(e){console.warn('Realtime:',e);}
+  // Mécanisme 3 : si l'admin était déjà connecté (session restaurée) →
+  // propager silencieusement les qualifiés manquants au démarrage
+  if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},1000);
   var _pg=localStorage.getItem('ldc_pg'),_tb=localStorage.getItem('ldc_tab');
   if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','confrontations','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
   if(_tb)S.tab=_tb;
@@ -2095,40 +2111,62 @@ init();
 
 <!-- Modale règles du jeu -->
 <div id="rules-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)hideRules()">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h3 style="margin:0;font-size:1.1rem">📋 Règles du jeu — LDC 26/27</h3>
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;font-size:1.05rem">📋 Règles de calcul des points</h3>
       <button onclick="hideRules()" style="background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;font-size:.88rem">
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem">
+
+      <!-- Bon résultat -->
       <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px">
-        <div style="color:var(--grn);font-weight:600;margin-bottom:4px">✓ Bon résultat</div>
+        <div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓ Bon résultat</div>
         <div style="color:var(--txt)">Bon vainqueur (ou nul correct) → <strong>côte × 2</strong></div>
       </div>
+
+      <!-- Bonne différence -->
       <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 12px">
-        <div style="color:var(--grn);font-weight:600;margin-bottom:4px">≈ Bon résultat + bonne différence</div>
-        <div style="color:var(--txt)">Même écart exact → <strong>côte × 5</strong></div>
+        <div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓✓ Bon résultat + bonne différence de buts</div>
+        <div style="color:var(--txt)">Même écart de buts que le résultat réel → <strong>côte × 5</strong></div>
       </div>
+
+      <!-- Score exact -->
       <div style="background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);border-radius:8px;padding:10px 12px">
-        <div style="color:var(--gold);font-weight:600;margin-bottom:4px">🎯 Score exact</div>
+        <div style="color:var(--gold);font-weight:700;margin-bottom:3px">🎯 Score exact</div>
         <div style="color:var(--txt)">Score parfait → <strong>côte × 10</strong></div>
       </div>
-      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px">
-        <div style="color:#f87171;font-weight:600;margin-bottom:6px">⚽ Matchs nuls (TAB)</div>
-        <div style="color:var(--txt);font-size:.82rem;display:flex;flex-direction:column;gap:4px">
-          <div>Prono nul + bon vainqueur TAB → <strong>côte nul × 5</strong></div>
-          <div>Score exact nul + bon vainqueur TAB → <strong>côte nul × 10</strong></div>
-          <div>Prono nul seul (sans TAB correct) → <strong>côte nul × 2</strong></div>
-          <div style="color:var(--muted);font-size:.75rem;margin-top:2px">L'admin saisit le vainqueur aux tirs au but. Le joueur choisit son pronostic TAB via le menu ⚽ qui apparaît quand il saisit un score nul.</div>
+
+      <!-- Note cotes -->
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0">
+        Cotes Pinnacle (OddsPapi) · figées la veille du match
+      </div>
+
+      <!-- Séparateur TAB -->
+      <div style="border-top:1px solid var(--bdr);padding-top:10px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px">⚽ Match aux tirs au but (TAB)</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
+            <span style="color:var(--txt)">Prono nul</span>
+            <span style="color:var(--muted);font-weight:600">côte nul × 2</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
+            <span style="color:var(--txt)">Prono nul + bon vainqueur TAB</span>
+            <span style="color:var(--muted);font-weight:600">côte nul × 5</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+            <span style="color:var(--gold);font-weight:700">🎯 Score exact nul + bon vainqueur TAB</span>
+            <span style="color:var(--gold);font-weight:700">côte nul × 10</span>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">
+          Le menu ⚽ TAB apparaît automatiquement quand vous saisissez un score nul sur un match KO.
         </div>
       </div>
-      <div style="border-top:1px solid var(--bdr);padding-top:8px;font-size:.75rem;color:var(--muted);text-align:center">
-        Cotes Pinnacle (OddsPapi) · valables pour <strong>tous</strong> les matchs LDC<br>
-        Score pris en compte : 90 min + prolongations
-      </div>
+
     </div>
   </div>
 </div>
+
 
 
 
