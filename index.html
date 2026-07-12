@@ -285,7 +285,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.3.8';
+var VERSION = '1.4.0';
 var BUILD   = '12/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -294,6 +294,7 @@ var adminMode=false;
 var logoClicks=0,logoTimer=null;
 var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[],confrontations:[],confrontationGroups:[]};
 var sb=null,SB_ERROR='';
+var AVATAR_LIST=['⚽','🥅','🏆','🥇','🥈','🥉','🎽','👟','🧤','🟨','🟥','📣','🏟️','🧣','🦶','🐐','🦁','🦅','🐯','🐺','🦊','🔥','⭐','🚀'];
 
 function initSB(){
   if(!SUPABASE_URL||SUPABASE_URL==='VOTRE_URL_SUPABASE'||!SUPABASE_KEY||SUPABASE_KEY==='VOTRE_CLE_ANON_ICI'){SB_ERROR='URL ou clé Supabase manquante';return false;}
@@ -632,15 +633,8 @@ function pgNoGroup(){
     grpOpts+='<option value="'+DB.groups[gi].id+'">'+DB.groups[gi].name+'</option>';
   }
 
-  // Grille d'avatars
-  var avatarList=['⚽', '🏆', '🥇', '🔥', '⚡', '🎯', '🦁', '🐯', '🦊', '🐺', '🦅', '🦋', '🌟', '💫', '🎮', '🎲', '🏅', '🥊', '🎸', '🚀'];
-  var avatarGrid='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
-  for(var ai=0;ai<avatarList.length;ai++){
-    avatarGrid+='<button type="button" class="av-btn" data-av="'+avatarList[ai]+'" onclick="selectAvatar(this)" '
-      +'style="font-size:1.4rem;width:42px;height:42px;border-radius:8px;border:2px solid var(--bdr);background:var(--bg);cursor:pointer;transition:all .15s">'
-      +avatarList[ai]+'</button>';
-  }
-  avatarGrid+='</div><input id="sel-avatar" type="hidden" value="⚽">';
+  // Grille d'avatars — thème 100% football + champ libre
+  var avatarGrid=avatarPickerHTML('reg','⚽');
 
   return '<div style="max-width:420px;margin:40px auto;text-align:center">'
     +'<div style="font-size:3rem;margin-bottom:12px">⚽</div>'
@@ -1018,6 +1012,9 @@ function pgProfil(){
   plist.sort(function(a,b){return a.mm.id-b.mm.id;});
   var cpwBlock='';
   if(S.cpw)cpwBlock='<div class="card" style="margin-bottom:20px"><h4 style="margin-bottom:12px">&#128274; Changer le mot de passe</h4><div style="display:flex;gap:10px;flex-wrap:wrap"><input class="fi" id="opw" type="password" placeholder="Ancien mot de passe"><input class="fi" id="npw" type="password" placeholder="Nouveau mot de passe"><button class="btn-g" onclick="hCpw()">Modifier</button></div><div id="cpwe" style="color:var(--red);font-size:.78rem;margin-top:5px"></div></div>';
+  var myAvatar=avt(S.user);
+  var avEditBlock='';
+  if(S.avEdit)avEditBlock='<div class="card" style="margin-bottom:20px"><h4 style="margin-bottom:12px">&#9917; Changer d\'avatar</h4>'+avatarPickerHTML('prof',myAvatar)+'<button class="btn-g" style="margin-top:12px" onclick="hChangeAvatar()">Enregistrer</button><div id="aved" style="color:var(--red);font-size:.78rem;margin-top:5px"></div></div>';
   var pronosH='';
   if(!plist.length){pronosH='<div class="empty">Pas encore de pronostic. <span onclick="go(\'matchs\')" style="color:var(--gold);cursor:pointer;font-weight:700">Pronostiquer &#8594;</span></div>';}
   else{
@@ -1039,9 +1036,10 @@ function pgProfil(){
     }
     pronosH='<div class="card" style="padding:0 20px">'+rows+'</div>';
   }
-  return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">&#128100;</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
+  return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
+    +avEditBlock
     +cpwBlock
-    +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+st.p+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
+    +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+fmtPts(st.p)+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
     +'<h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px">MES PRONOSTICS</h3>'+pronosH;
 }
 
@@ -1758,6 +1756,22 @@ function hPronoChange(id){
   }
 }
 function tCpw(){S.cpw=!S.cpw;render();}
+function tAvEdit(){S.avEdit=!S.avEdit;render();}
+async function hChangeAvatar(){
+  if(!sb||!S.user||S.user===ADMIN)return;
+  var inp=document.getElementById('sel-avatar-prof');
+  var av=inp?inp.value.trim():'';
+  var e=document.getElementById('aved');
+  if(!av){if(e)e.textContent='Choisissez un avatar.';return;}
+  var uu=DB.userMap[S.user];
+  if(!uu){if(e)e.textContent='Utilisateur introuvable.';return;}
+  var r=await sb.from('users').update({avatar:av}).eq('id',uu.id);
+  if(r&&r.error){if(e)e.textContent='Erreur: '+r.error.message;return;}
+  uu.avatar=av;
+  S.avEdit=false;
+  toast('Avatar mis à jour ✓');
+  render();
+}
 function tAdm(){S.adm=!S.adm;render();}
 function go(p){S.page=p;localStorage.setItem('ldc_pg',p);render();window.scrollTo(0,0);}
 function goToMatch(matchId){var m=null;for(var i=0;i<M.length;i++){if(M[i].id===matchId){m=M[i];break;}}if(!m){go('matchs');return;}S.tab=m.ph||'LIGUE';S.jour='ALL';S.qf='all';go('matchs');setTimeout(function(){var el=document.getElementById('ph'+matchId)||document.getElementById('rh'+matchId);if(el){var card=el.closest('.mc');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});}},150);}
@@ -1774,17 +1788,57 @@ function switchAuthTab(tab){
   document.getElementById('tab-register').style.background=isLogin?'var(--card)':'var(--gold)';
   document.getElementById('tab-register').style.color=isLogin?'var(--muted)':'#fff';
 }
-function selectAvatar(btn){
-  document.querySelectorAll('.av-btn').forEach(function(b){b.style.borderColor='var(--bdr)';b.style.background='var(--bg)';});
+function avatarPickerHTML(prefix,current){
+  current=current||'⚽';
+  var g='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+  for(var i=0;i<AVATAR_LIST.length;i++){
+    var av=AVATAR_LIST[i],sel=(av===current);
+    g+='<button type="button" class="av-btn-'+prefix+'" data-av="'+av+'" onclick="selectAvatar(this,\''+prefix+'\')" '
+      +'style="font-size:1.4rem;width:42px;height:42px;border-radius:8px;border:2px solid '+(sel?'var(--gold)':'var(--bdr)')+';background:'+(sel?'rgba(26,86,219,.15)':'var(--bg)')+';cursor:pointer;transition:all .15s">'
+      +av+'</button>';
+  }
+  g+='</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'
+    +'<input class="fi" id="custom-avatar-'+prefix+'" maxlength="8" placeholder="Ou tapez/collez votre propre emoji" style="flex:1" oninput="selectCustomAvatar(this.value,\''+prefix+'\')">'
+    +'<span id="custom-avatar-preview-'+prefix+'" style="font-size:1.4rem;width:42px;height:42px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bdr);border-radius:8px;flex-shrink:0">'+current+'</span>'
+    +'</div>'
+    +'<input id="sel-avatar-'+prefix+'" type="hidden" value="'+current+'">';
+  return g;
+}
+function selectAvatar(btn,prefix){
+  prefix=prefix||'reg';
+  document.querySelectorAll('.av-btn-'+prefix).forEach(function(b){b.style.borderColor='var(--bdr)';b.style.background='var(--bg)';});
   btn.style.borderColor='var(--gold)';btn.style.background='rgba(26,86,219,.15)';
-  var inp=document.getElementById('sel-avatar');if(inp)inp.value=btn.getAttribute('data-av');
+  var av=btn.getAttribute('data-av');
+  var inp=document.getElementById('sel-avatar-'+prefix);if(inp)inp.value=av;
+  var ci=document.getElementById('custom-avatar-'+prefix);if(ci)ci.value='';
+  var pv=document.getElementById('custom-avatar-preview-'+prefix);if(pv)pv.textContent=av;
+}
+function selectCustomAvatar(val,prefix){
+  prefix=prefix||'reg';
+  val=(val||'').trim();
+  if(!val)return;
+  // Ne garde que le 1er caractère "visuel" (grapheme) même si un emoji composé
+  // (drapeau, peau, ZWJ...) tient sur plusieurs code points, pour rester compact.
+  var first=val;
+  try{
+    if(typeof Intl!=='undefined'&&Intl.Segmenter){
+      var seg=Array.from(new Intl.Segmenter().segment(val)).map(function(s){return s.segment;});
+      if(seg[0])first=seg[0];
+    }else{
+      var arr=Array.from(val);if(arr[0])first=arr[0];
+    }
+  }catch(e){}
+  var inp=document.getElementById('sel-avatar-'+prefix);if(inp)inp.value=first;
+  var pv=document.getElementById('custom-avatar-preview-'+prefix);if(pv)pv.textContent=first;
+  document.querySelectorAll('.av-btn-'+prefix).forEach(function(b){b.style.borderColor='var(--bdr)';b.style.background='var(--bg)';});
 }
 async function hRegister(){
   var display=gv('rp-display').trim();
   var login=gv('rp-login').trim().toLowerCase().replace(/\s+/g,'');
   var pw=gv('rp-pw');
   var grp=gv('rp-group');
-  var av=document.getElementById('sel-avatar')?document.getElementById('sel-avatar').value:'⚽';
+  var av=document.getElementById('sel-avatar-reg')?document.getElementById('sel-avatar-reg').value:'⚽';
   var e=document.getElementById('rerr');
   if(!display){if(e)e.textContent='Entrez votre prénom / pseudo affiché.';return;}
   if(!login){if(e)e.textContent='Entrez un identifiant de connexion.';return;}
