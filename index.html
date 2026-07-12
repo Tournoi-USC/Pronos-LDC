@@ -14,7 +14,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prono LDC 26/27 v1.4.0</title>
+<title>Prono LDC 26/27</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" style="cursor:default">&#9917; <span>PRONO LDC 26/27</span><span style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.4.0</span></div>
+  <div class="sb-logo" onclick="logoClick()" title="Cliquer : retour à l'accueil" style="cursor:pointer">&#9917; <span>PRONO LDC 26/27</span><span id="ver-badge" style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.5</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -285,8 +285,12 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.4.0';
+var VERSION = '1.4.1';
 var BUILD   = '12/07/2026';
+// Synchro automatique du <title> et du badge de version dans la sidebar avec
+// VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
+document.title='Prono LDC 26/27 v'+VERSION;
+(function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
@@ -2007,7 +2011,25 @@ async function hSaveAll(){
 }
 function updatePronoCount(){var cnt=document.getElementById('prono-count');if(!cnt)return;var n=0;for(var mi=0;mi<M.length;mi++){var hEl=document.getElementById('ph'+M[mi].id),aEl=document.getElementById('pa'+M[mi].id);if(hEl&&aEl&&!hEl.disabled&&hEl.value!==''&&aEl.value!=='')n++;}cnt.textContent=n;}
 
-function logoClick(){logoClicks++;if(logoTimer)clearTimeout(logoTimer);if(logoClicks>=5){logoClicks=0;document.getElementById('emergency-modal').style.display='flex';return;}logoTimer=setTimeout(function(){logoClicks=0;},2000);}
+function logoClick(){
+  logoClicks++;
+  if(logoTimer)clearTimeout(logoTimer);
+  if(logoClicks>=5){
+    logoClicks=0;
+    document.getElementById('emergency-modal').style.display='flex';
+    return;
+  }
+  // On attend un court instant avant d'agir, pour laisser le temps à
+  // d'éventuels clics suivants d'atteindre le seuil des 5 (mode secours).
+  // Si un seul clic est resté isolé passé ce délai → retour à la racine.
+  logoTimer=setTimeout(function(){
+    var isolatedClick=(logoClicks===1);
+    logoClicks=0;
+    if(isolatedClick){
+      window.location.href=window.location.origin+window.location.pathname;
+    }
+  },600);
+}
 
 async function doEmergency(){
   var sec=gv('em-secret'),np=gv('em-np'),npin=gv('em-npin'),emsg=document.getElementById('em-msg');
@@ -2268,6 +2290,11 @@ init();
         <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">
           Le menu ⚽ TAB apparaît automatiquement quand vous saisissez un score nul sur un match KO.
         </div>
+      </div>
+
+      <!-- Note matchs non pronostiqués -->
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">
+        ⚠️ Un match sans pronostic saisi avant son coup d'envoi ne rapporte aucun point et n'est pas comptabilisé dans le classement.
       </div>
 
     </div>
