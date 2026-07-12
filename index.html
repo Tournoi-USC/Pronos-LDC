@@ -285,7 +285,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.3.7';
+var VERSION = '1.3.8';
 var BUILD   = '12/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
@@ -406,6 +406,15 @@ async function propagateAllWinners(){if(!sb||!isAdmin())return 0;var koIds=Objec
 async function saveConfig(key,val){if(!sb)return;await sb.from('config').upsert({key:key,value:val});DB.config[key]=val;}
 
 /* ═══ SCORING — Unifié côtes pour TOUS les matchs ═══════════════ */
+// Format harmonisé pour tout affichage de points/moyennes : entier sans
+// décimale, sinon 2 décimales max (arrondi). Utilisé partout (classement
+// général, confrontations équipes/individuel, stats admin) pour éviter les
+// incohérences (ex: 1 décimale ici, 2 ailleurs, toujours 2 même si rond...).
+function fmtPts(n){
+  if(n==null||isNaN(n))return '—';
+  var r=Math.round(n*100)/100;
+  return Number.isInteger(r)?String(r):r.toFixed(2);
+}
 function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[i].oh,oa:M[i].oa,od:M[i].od,ph:M[i].ph,win:M[i].win||null};return null;}
 
 function calcPts(pn,r,odds){
@@ -736,7 +745,7 @@ function pgAccueil(){
     for(var bi=0;bi<Math.min(5,board.length);bi++){
       var u=board[bi],medal=bi===0?'&#129351;':bi===1?'&#129352;':bi===2?'&#129353;':(bi+1);
       var you=u.k===S.user?' <span style="color:var(--gold);font-size:.7rem">(vous)</span>':'';
-      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+u.p+'</td></tr>';
+      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
     h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
@@ -965,7 +974,7 @@ function pgClass(){
     var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
     rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
      +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
-     +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+(Number.isInteger(u.p)?u.p:u.p.toFixed(2))+'</td></tr>';
+     +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
   }
   return h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
@@ -1571,7 +1580,7 @@ function pgConfrontations(){
           +'<td style="color:var(--gold);font-size:.75rem">'+u2.gname+'</td>'
           +'<td class="rnc">'+u2.ex+'</td>'
           +'<td class="rnc">'+u2.np+'</td>'
-          +'<td class="rpts">'+(Number.isInteger(u2.p)?u2.p:u2.p.toFixed(2))+'</td>'
+          +'<td class="rpts">'+fmtPts(u2.p)+'</td>'
           +'</tr>';
       }
       if(!rows2){
@@ -1616,18 +1625,18 @@ function pgStats(){
     DB.groups.forEach(function(g){
       var d=grpMap[g.id];if(!d)return;
       var nb=d.users.length;
-      var avgPts=nb>0?(d.pts/nb).toFixed(1):'—';
+      var avgPts=nb>0?fmtPts(d.pts/nb):'—';
       var rate=nb>0&&playedIds.length>0?Math.round(d.pronos/(nb*Math.max(playedIds.length,1))*100):0;
       grpRows+='<tr><td style="padding:10px 14px;font-weight:700">&#128101; '+g.name+'</td><td style="padding:10px 14px;text-align:right">'+nb+'</td><td style="padding:10px 14px;text-align:right">'+d.pronos+'</td><td style="padding:10px 14px;text-align:right">'+rate+'%</td><td style="padding:10px 14px;text-align:right">'+d.exact+'</td><td style="padding:10px 14px;text-align:right">'+d.ok+'</td><td style="padding:10px 14px;text-align:right;color:var(--gold);font-weight:800">'+avgPts+' pts</td></tr>';
     });
     var board=lb();var topRows='';
-    board.slice(0,5).forEach(function(u,i){var medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);var gn=u.gid&&grpMap[u.gid]?grpMap[u.gid].name:'';topRows+='<tr><td style="padding:10px 14px">'+medal+'</td><td style="padding:10px 14px;font-weight:700">'+u.ps+'</td><td style="padding:10px 14px;color:var(--muted);font-size:.8rem">'+gn+'</td><td style="padding:10px 14px;text-align:right">'+u.ex+'</td><td style="padding:10px 14px;text-align:right">'+u.ok+'</td><td style="padding:10px 14px;text-align:right;color:var(--gold);font-weight:800">'+u.p+'</td></tr>';});
+    board.slice(0,5).forEach(function(u,i){var medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);var gn=u.gid&&grpMap[u.gid]?grpMap[u.gid].name:'';topRows+='<tr><td style="padding:10px 14px">'+medal+'</td><td style="padding:10px 14px;font-weight:700">'+u.ps+'</td><td style="padding:10px 14px;color:var(--muted);font-size:.8rem">'+gn+'</td><td style="padding:10px 14px;text-align:right">'+u.ex+'</td><td style="padding:10px 14px;text-align:right">'+u.ok+'</td><td style="padding:10px 14px;text-align:right;color:var(--gold);font-weight:800">'+fmtPts(u.p)+'</td></tr>';});
     content2='<div class="sg" style="margin-top:20px">'
       +card2('&#128101;','Joueurs inscrits',allUsers.length,DB.groups.length+' groupe(s)')
       +card2('&#127919;','Total pronos',totalPronos,'')
       +card2('&#9989;','Scores exacts',totalExact,(totalPronos>0?Math.round(totalExact/totalPronos*100)+'% de réussite':''))
       +card2('&#10003;','Bons résultats',totalOk,'')
-      +card2('&#127942;','Meilleur joueur',topUser?topUser.pseudo_display:'—',topUser?topPts+' pts':'')
+      +card2('&#127942;','Meilleur joueur',topUser?topUser.pseudo_display:'—',topUser?fmtPts(topPts)+' pts':'')
       +'</div>';
     if(DB.groups.length>0){content2+='<div style="margin-top:28px"><h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Par groupe</h3><div class="card" style="padding:0"><table class="rt"><thead><tr><th>Groupe</th><th class="r">Joueurs</th><th class="r">Pronos</th><th class="r">Participation</th><th class="r">Exacts</th><th class="r">Résultats</th><th class="r gd">Moy. pts</th></tr></thead><tbody>'+grpRows+'</tbody></table></div></div>';}
     if(topRows){content2+='<div style="margin-top:28px"><h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Top 5 tous groupes</h3><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th>Groupe</th><th class="r">Exacts</th><th class="r">Résultats</th><th class="r gd">Points</th></tr></thead><tbody>'+topRows+'</tbody></table></div></div>';}
@@ -1637,7 +1646,7 @@ function pgStats(){
     else{
       var gd=grpMap[grp.id]||{users:[],pts:0,exact:0,ok:0,pronos:0};
       var gUsers=allUsers.filter(function(u){return u.group_id===grp.id;});
-      var nb=gUsers.length,avgPts=nb>0?(gd.pts/nb).toFixed(1):'—';
+      var nb=gUsers.length,avgPts=nb>0?fmtPts(gd.pts/nb):'—';
       var rate=nb>0&&playedIds.length>0?Math.round(gd.pronos/(nb*Math.max(playedIds.length,1))*100):0;
       content2='<div class="sg" style="margin-top:20px">'
         +card2('&#128101;','Joueurs',nb,'')
@@ -1649,7 +1658,7 @@ function pgStats(){
       var gBoard=[];gUsers.forEach(function(u){var st=pts(u.id),pr=uPronos(u.id);gBoard.push({k:u.pseudo_key,ps:u.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,ok:st.ok});});
       gBoard.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
       var gRows='';
-      gBoard.forEach(function(u,i){var medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);gRows+='<tr><td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td>'+u.ps+'</td><td class="rnc">'+u.np+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+u.p+'</td></tr>';});
+      gBoard.forEach(function(u,i){var medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);gRows+='<tr><td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td>'+u.ps+'</td><td class="rnc">'+u.np+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';});
       if(gRows)content2+='<div style="margin-top:20px"><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Pronos</th><th class="r">Exacts</th><th class="r">Résultats</th><th class="r gd">Points</th></tr></thead><tbody>'+gRows+'</tbody></table></div></div>';
       else content2+='<div class="empty">Aucun joueur dans ce groupe.</div>';
     }
