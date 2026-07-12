@@ -285,7 +285,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.4.1';
+var VERSION = '1.4.2';
 var BUILD   = '12/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -293,7 +293,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[],confrontations:[],confrontationGroups:[]};
