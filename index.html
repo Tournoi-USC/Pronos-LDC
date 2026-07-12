@@ -258,8 +258,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 /* ── Mini client Supabase REST + WebSocket ── */
 var supabase={createClient:function(url,key){var H={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key};function rest(t,q){return url+'/rest/v1/'+t+(q?'?'+q:'');}function req(t,method,body,extraH,qs){return fetch(rest(t,qs),{method:method,headers:Object.assign({},H,extraH||{}),body:body!=null?JSON.stringify(body):undefined}).then(function(r){if(r.status===204||r.status===201)return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:null};try{var d=JSON.parse(txt);return{data:d,error:null};}catch(e){return{data:null,error:null};}});return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:r.ok?null:{message:'Empty response'}};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||d.details||JSON.stringify(d)}};}catch(e){return{data:null,error:r.ok?null:{message:txt}};}});}).catch(function(e){return{data:null,error:{message:e.message}};});}function buildQ(sel,filters,ord,single){var q='select='+(sel||'*');(filters||[]).forEach(function(f){q+='&'+f;});if(ord)q+='&order='+ord;if(single)q+='&limit=1';return q;}function tableClient(t){var _sel='*',_f=[],_ord=null;var c={select:function(s){_sel=s;return c;},eq:function(col,v){_f.push(col+'=eq.'+encodeURIComponent(v));return c;},order:function(col){_ord=col;return c;},insert:function(b){return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'return=representation'});},upsert:function(b,opts){var oc=opts&&opts.onConflict?'on_conflict='+encodeURIComponent(opts.onConflict):'';return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'resolution=merge-duplicates,return=minimal'},oc||undefined);},update:function(b){return{eq:function(col,v){return req(t,'PATCH',b,{'Prefer':'return=representation'},col+'=eq.'+encodeURIComponent(v));}};},delete:function(){return{eq:function(col,v){return req(t,'DELETE',null,{},col+'=eq.'+encodeURIComponent(v));}};},single:function(){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:Object.assign({'Accept':'application/vnd.pgrst.object+json'},H)}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||JSON.stringify(d)}};});}).catch(function(e){return{data:null,error:{message:e.message}};});},then:function(res,rej){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:H}).then(function(r){return r.text().then(function(txt){if(!txt||!txt.trim())return{data:[],error:null};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||txt}};}catch(e){return{data:[],error:null};}});}).catch(function(e){return{data:null,error:{message:e.message}};}).then(res,rej);}};return c;}
-var wsCbs=[],wsRef=0;function wsConnect(){try{var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';var ws=new WebSocket(wsUrl);ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'}]}}}));};ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};ws.onerror=function(e){console.warn('WS error');};ws.onclose=function(){setTimeout(wsConnect,5000);};}catch(e){console.warn('WS:',e.message);}}wsConnect();
-return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};}};}};
+var wsCbs=[],wsRef=0,ws=null,wsManualClose=true,wsRetryTimer=null;
+function wsConnect(){
+  if(ws&&(ws.readyState===0||ws.readyState===1))return; // déjà connecté / en cours
+  wsManualClose=false;
+  if(wsRetryTimer){clearTimeout(wsRetryTimer);wsRetryTimer=null;}
+  try{
+    var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';
+    ws=new WebSocket(wsUrl);
+    ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'}]}}}));};
+    ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};
+    ws.onerror=function(e){console.warn('WS error');};
+    ws.onclose=function(){ws=null;if(!wsManualClose){wsRetryTimer=setTimeout(wsConnect,5000);}};
+  }catch(e){console.warn('WS:',e.message);}
+}
+function wsDisconnect(){
+  wsManualClose=true;
+  if(wsRetryTimer){clearTimeout(wsRetryTimer);wsRetryTimer=null;}
+  if(ws){try{ws.close();}catch(e){}ws=null;}
+}
+return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};},_realtimeConnect:wsConnect,_realtimeDisconnect:wsDisconnect};}};
 
 /* ═══ CONFIGURATION ═════════════════════════════════════════════ */
 var SUPABASE_URL = 'https://nuddmcxkkericsksxbwb.supabase.co';
@@ -267,8 +285,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.3.5';
-var BUILD   = '05/07/2026';
+var VERSION = '1.3.7';
+var BUILD   = '12/07/2026';
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
@@ -1987,6 +2005,32 @@ async function reloadPronos(){
   for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.pseudo_key])DB.pronos[owner.pseudo_key]={};DB.pronos[owner.pseudo_key][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};}}
 }
 
+// Realtime actif seulement si : admin connecté OU un match est en cours
+// (coup d'envoi passé) et son score n'est pas encore tombé. Évite de garder
+// une connexion Realtime ouverte pour chaque visiteur en dehors des matchs.
+var LIVE_WINDOW_MS=3.5*60*60*1000; // 90min + prolongations + TAB + marge
+function isMatchLiveWindow(){
+  var now=Date.now();
+  for(var i=0;i<M.length;i++){
+    var m=M[i];
+    if(!m.dt||!m.ti)continue;
+    var kickoff=new Date(m.dt+'T'+m.ti+':00').getTime();
+    if(isNaN(kickoff))continue;
+    if(now>=kickoff&&now<=kickoff+LIVE_WINDOW_MS&&!DB.results[m.id])return true;
+  }
+  return false;
+}
+var rtDesired=null;
+function syncRealtimeState(){
+  if(!sb||!sb._realtimeConnect)return;
+  var shouldBeLive=isAdmin()||isMatchLiveWindow();
+  if(shouldBeLive===rtDesired)return;
+  rtDesired=shouldBeLive;
+  if(shouldBeLive)sb._realtimeConnect();
+  else sb._realtimeDisconnect();
+}
+setInterval(syncRealtimeState,60000); // ré-évalue chaque minute
+
 function setupRealtime(){
   if(!sb)return;
   try{
@@ -2097,7 +2141,7 @@ async function init(){
   if(ses&&ses!==ADMIN&&GROUP_ID&&sesGrp!==GROUP_ID){localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');ses=null;}
   if(ses&&DB.userMap[ses])S.user=ses;
   if(!GROUP_ID&&S.user&&S.user!==ADMIN){var udataR=DB.userMap[S.user];if(udataR&&udataR.group_id){window.location.replace(window.location.pathname+'?g='+udataR.group_id);return;}}
-  try{setupRealtime();}catch(e){console.warn('Realtime:',e);}
+  try{setupRealtime();syncRealtimeState();}catch(e){console.warn('Realtime:',e);}
   // Mécanisme 3 : si l'admin était déjà connecté (session restaurée) →
   // propager silencieusement les qualifiés manquants au démarrage
   if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},1000);
@@ -2143,14 +2187,14 @@ init();
 
       <!-- Séparateur TAB -->
       <div style="border-top:1px solid var(--bdr);padding-top:10px">
-        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px">⚽ Match aux tirs au but (TAB)</div>
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px">⚽ Matchs nuls (TAB)</div>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
-            <span style="color:var(--txt)">Prono nul</span>
+            <span style="color:var(--txt)">Score nul seul (sans TAB correct)</span>
             <span style="color:var(--muted);font-weight:600">côte nul × 2</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
-            <span style="color:var(--txt)">Prono nul + bon vainqueur TAB</span>
+            <span style="color:var(--txt)">Score nul + bon vainqueur TAB</span>
             <span style="color:var(--muted);font-weight:600">côte nul × 5</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
