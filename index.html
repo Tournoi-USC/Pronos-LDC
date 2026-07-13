@@ -297,7 +297,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.7.0';
+var VERSION = '1.7.1';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -305,7 +305,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -1069,9 +1069,22 @@ function cardMatch(m){
 function pgClass(){
   if(!sb)return pgSetup();
   var board=lb();
-  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p><div class="card" style="padding:0;margin-top:20px">';
-  var classementHTML;
-  if(!board.length){classementHTML=h+'<div class="empty">Aucun participant pour le moment.</div></div>';}
+  if(!S.classTab)S.classTab='general'; // onglet actif : 'general' ou 'confrontations'
+  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p>';
+  var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
+    +'<button class="tb'+(S.classTab==='general'?' on':'')+'" onclick="S.classTab=\'general\';render()">🏆 Général</button>'
+    +'<button class="tb'+(S.classTab==='confrontations'?' on':'')+'" onclick="S.classTab=\'confrontations\';render()">⚔️ Confrontations</button>'
+    +'</div>';
+
+  if(S.classTab==='confrontations'){
+    // Confrontations (équipes / individuel), fusionnées ici depuis l'ancien
+    // onglet "Équipes" séparé — évite la confusion avec les équipes du
+    // tournoi (le contenu de pgConfrontations() est inchangé, juste imbriqué).
+    return h+tabsH+pgConfrontations();
+  }
+
+  var body='<div class="card" style="padding:0;margin-top:0">';
+  if(!board.length){body+='<div class="empty">Aucun participant pour le moment.</div></div>';}
   else{
     var rows='';
     for(var i=0;i<board.length;i++){
@@ -1081,13 +1094,9 @@ function pgClass(){
        +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
        +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
-    classementHTML=h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    body+='<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
-  // Confrontations (équipes / individuel), fusionnées ici depuis l'ancien
-  // onglet "Équipes" séparé — évite la confusion avec les équipes du
-  // tournoi (le contenu de pgConfrontations() est inchangé, juste imbriqué).
-  var cfHTML=pgConfrontations();
-  return classementHTML+'<div style="margin-top:32px">'+cfHTML+'</div>';
+  return h+tabsH+body;
 }
 
 function pgLigue(){
