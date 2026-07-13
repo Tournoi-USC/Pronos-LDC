@@ -84,6 +84,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pi::-webkit-outer-spin-button,.pi::-webkit-inner-spin-button{-webkit-appearance:none}
 .pi:focus{border-color:var(--gold)}
 .pi:disabled{opacity:.45}
+.pi-sel{width:52px;height:44px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);font-size:1.1rem;font-weight:700;text-align:center;text-align-last:center;outline:none;cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;padding:0}
+.pi-sel:focus{border-color:var(--gold)}
+.pi-sel:disabled{opacity:.45;cursor:default}
 .psb{padding:8px 14px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.83rem}
 .mf2{margin-top:8px;font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 .tv-tag{font-size:.68rem;padding:2px 6px;border-radius:4px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
@@ -183,6 +186,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .lf{flex-direction:column}
   .htitle{font-size:2rem}
   .pi{width:52px;height:52px;font-size:1.2rem}
+  .pi-sel{width:60px;height:52px;font-size:1.2rem}
   .bktbl-wrap{max-width:calc(100vw - 32px);overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 #save-bar-portal{position:fixed;bottom:24px;left:0;right:0;z-index:210;display:flex;justify-content:center;pointer-events:none}
@@ -285,7 +289,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.5.0';
+var VERSION = '1.6.1';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -447,7 +451,6 @@ async function admReset(pseudo,np,pin){
 }
 
 /* ═══ PRONOS ════════════════════════════════════════════════════ */
-async function savePr(id,hv,av,wp){if(!S.user||!sb)return;var uid=DB.userMap[S.user].id;var data={user_id:uid,match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()};if(wp!==undefined)data.winner_prono=wp||null;await sb.from('pronos').upsert(data,{onConflict:'user_id,match_id'});if(!DB.pronos[S.user])DB.pronos[S.user]={};DB.pronos[S.user][id]={h:+hv,a:+av,wp:wp||null};}
 function uPronos(u){if(DB.pronos[u])return DB.pronos[u];var uu=DB.userMap[u];if(uu&&DB.pronos[uu.id])return DB.pronos[uu.id];return{};}
 function getRes(id){return DB.results[id]||null;}
 async function setRes(id,hv,av){
@@ -500,13 +503,18 @@ function fmtPts(n){
 }
 function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[i].oh,oa:M[i].oa,od:M[i].od,ph:M[i].ph,win:M[i].win||null};return null;}
 
+// Le select de pronostic plafonne à "5+" (stocké comme 5) : un score
+// réel ≥5 doit être ramené à 5 pour qu'un "score exact" reste atteignable.
+function cap5(x){return x>5?5:x;}
+function dispPn(v){return(v>=5)?'5+':v;}
+
 function calcPts(pn,r,odds){
   if(!pn||!r)return 0;
   // Cas TAB : score nul réel + vainqueur désigné par l'admin (odds.win défini)
   // Le joueur pronostique le score nul ET éventuellement le vainqueur aux tirs au but
   if(odds&&odds.win){
     var pronoNul=(pn.h===pn.a);
-    var exactNul=(pn.h===r.h&&pn.a===r.a);
+    var exactNul=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
     var bonWinner=(pn.wp===odds.win);
     var ref=odds.od; // côte du nul = référence pour les TAB
     if(!ref)ref=odds.win==='h'?odds.oh:odds.oa; // fallback si pas de côte nul
@@ -517,7 +525,7 @@ function calcPts(pn,r,odds){
     return 0;
   }
   // Cas normal (victoire nette)
-  var exact=(pn.h===r.h&&pn.a===r.a);
+  var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
   var isNul=(r.h===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
@@ -544,7 +552,7 @@ function pts(user){
   for(var i=0;i<ids.length;i++){
     var pn=pr[ids[i]],r=res[ids[i]];if(!r)continue;pl++;
     var odds=getMatchOdds(+ids[i]);
-    var exact=(pn.h===r.h&&pn.a===r.a);
+    var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
     var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
     var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
     var earned=calcPts(pn,r,odds);
@@ -560,7 +568,7 @@ function ptBadge(id,user){
   // Cas TAB
   if(odds&&odds.win){
     var pronoNul=(pn.h===pn.a);
-    var exactNul=(pn.h===r.h&&pn.a===r.a);
+    var exactNul=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
     var bonWinner=(pn.wp===odds.win);
     if(exactNul&&bonWinner)return{type:'ex',pts:earned};
     if(pronoNul&&bonWinner)return{type:'okd',pts:earned};
@@ -568,7 +576,7 @@ function ptBadge(id,user){
     return{type:'no',pts:0};
   }
   // Cas normal
-  var exact=(pn.h===r.h&&pn.a===r.a);
+  var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
   if(exact)return{type:'ex',pts:earned};
@@ -937,6 +945,19 @@ function pgMatchs(){
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
+// Génère un <select> de score pronostic : ?, 0,1,2,3,4,5+ (5+ stocké
+// comme la valeur entière 5 en base). Affiche "5+" sélectionné si la
+// valeur existante est ≥5 (saisie avant la migration ou score élevé).
+function pronoSelectHTML(id,val,disAttr){
+  var opts='<option value=""'+(val===''?' selected':'')+'>?</option>';
+  for(var i=0;i<=5;i++){
+    var label=(i===5)?'5+':String(i);
+    var sel=(val!==''&&(+val===i||(i===5&&+val>=5)))?' selected':'';
+    opts+='<option value="'+i+'"'+sel+'>'+label+'</option>';
+  }
+  var mid=id.replace(/^p[ha]/,'');
+  return '<select class="pi-sel" id="'+id+'"'+disAttr+' onchange="hPronoChange('+mid+')">'+opts+'</select>';
+}
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(m.dt+'T'+m.ti+':00+01:00'),started=(new Date())>=dt;
@@ -965,7 +986,8 @@ function cardMatch(m){
       else if(ptb.type==='ok')badgeH='<span class="badge ok">&#10003; +'+ptb.pts+'pts</span>';
       else badgeH='<span class="badge no">&#10007; 0pt</span>';
     }
-    pronoBlock='<div class="pr"><input class="pi" type="number" min="0" max="20" id="ph'+m.id+'" value="'+(pn?pn.h:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')"><span style="color:var(--muted)">-</span><input class="pi" type="number" min="0" max="20" id="pa'+m.id+'" value="'+(pn?pn.a:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')">'+badgeH+'</div>';
+    var vh=pn?pn.h:'',va=pn?pn.a:'';
+    pronoBlock='<div class="pr">'+pronoSelectHTML('ph'+m.id,vh,dis)+'<span style="color:var(--muted)">-</span>'+pronoSelectHTML('pa'+m.id,va,dis)+badgeH+'</div>';
     // Menu TAB joueur : KO uniquement (barrages, 8es, quarts, demis, finale)
     // En phase de ligue, un nul reste un nul — pas de prolongations ni TAB
     if(!started&&m.ph!=='LIGUE'){
@@ -1099,7 +1121,7 @@ function pgProfil(){
       var realScore=x.r?'<span style="font-size:.72rem;color:var(--muted);margin:0 6px">Réel:</span><span style="font-weight:700;color:var(--txt);font-size:.85rem">'+x.r.h+' - '+x.r.a+'</span>':'';
       rows+='<div class="pli"><span class="pmn">'+x.mm.h+' <span style="color:var(--muted)">vs</span> '+x.mm.a+'</span>'
         +'<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">'
-        +'<span style="font-size:.72rem;color:var(--muted)">Mon prono:</span><span class="psc2">'+x.pn.h+' - '+x.pn.a+'</span>'
+        +'<span style="font-size:.72rem;color:var(--muted)">Mon prono:</span><span class="psc2">'+dispPn(x.pn.h)+' - '+dispPn(x.pn.a)+'</span>'
         +realScore+badge+'</span></div>';
     }
     pronosH='<div class="card" style="padding:0 20px">'+rows+'</div>';
@@ -1618,7 +1640,7 @@ function pgConfrontations(){
             var odds=getMatchOdds(+prIds[pi]);
             var earned=calcPts(pn,r,odds);
             totalPts+=earned;
-            var exact=(pn.h===r.h&&pn.a===r.a);
+            var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
             var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
             if(exact)exacts++;else if(goodW)bons++;
           }
@@ -2270,6 +2292,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('click',function(e){var gm=e.target.closest?e.target.closest('[data-gm]'):null;if(gm)goToMatch(+gm.getAttribute('data-gm'));});
 document.addEventListener('input',function(e){if(e.target.classList.contains('pi'))updatePronoCount();});
+document.addEventListener('change',function(e){if(e.target.classList.contains('pi-sel'))updatePronoCount();});
 document.addEventListener('keydown',function(e){if(e.key==='Enter'){var lp=document.getElementById('lp'),lpw=document.getElementById('lpw');if(lp&&lpw&&(document.activeElement===lp||document.activeElement===lpw))hLogin();}});
 document.getElementById('ov').addEventListener('click',function(){document.getElementById('ov').classList.remove('open');});
 
