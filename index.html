@@ -17,6 +17,9 @@
 <title>Prono LDC 26/27</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{overflow-x:hidden}
@@ -33,7 +36,8 @@ body{overflow-x:hidden}
   --red:#ef4444;
   --sw:260px;--ban:0px
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
+body{font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
+input,button,select,textarea{font-family:inherit}
 .admin-banner{position:fixed;top:0;left:0;right:0;height:32px;background:var(--gold);color:#fff;font-size:.78rem;font-weight:800;display:none;align-items:center;justify-content:center;z-index:400;gap:8px}
 .admin-banner.on{display:flex}
 .sb{width:var(--sw);background:var(--nav);position:fixed;top:var(--ban);left:0;height:calc(100vh - var(--ban));display:flex;flex-direction:column;z-index:100;border-right:1px solid var(--bdr)}
@@ -84,9 +88,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pi::-webkit-outer-spin-button,.pi::-webkit-inner-spin-button{-webkit-appearance:none}
 .pi:focus{border-color:var(--gold)}
 .pi:disabled{opacity:.45}
-.pi-sel{width:52px;height:44px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);font-size:1.1rem;font-weight:700;text-align:center;text-align-last:center;outline:none;cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;padding:0}
-.pi-sel:focus{border-color:var(--gold)}
-.pi-sel:disabled{opacity:.45;cursor:default}
+.pi-stepper{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
+.pi-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--bdr);background:var(--bg);color:var(--txt);font-size:1rem;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:all .12s;flex-shrink:0}
+.pi-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.pi-btn:active:not(:disabled){transform:scale(.88)}
+.pi-btn:disabled{opacity:.35;cursor:default}
+.pi-val{min-width:22px;text-align:center;font-size:1.1rem;font-weight:700;color:var(--txt)}
 .psb{padding:8px 14px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.83rem}
 .mf2{margin-top:8px;font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 .tv-tag{font-size:.68rem;padding:2px 6px;border-radius:4px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
@@ -186,7 +193,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   .lf{flex-direction:column}
   .htitle{font-size:2rem}
   .pi{width:52px;height:52px;font-size:1.2rem}
-  .pi-sel{width:60px;height:52px;font-size:1.2rem}
+  .pi-btn{width:32px;height:32px;font-size:1.15rem}
+  .pi-val{min-width:26px;font-size:1.25rem}
   .bktbl-wrap{max-width:calc(100vw - 32px);overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 #save-bar-portal{position:fixed;bottom:24px;left:0;right:0;z-index:210;display:flex;justify-content:center;pointer-events:none}
@@ -289,7 +297,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.6.1';
+var VERSION = '1.7.0';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -505,16 +513,13 @@ function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[
 
 // Le select de pronostic plafonne à "5+" (stocké comme 5) : un score
 // réel ≥5 doit être ramené à 5 pour qu'un "score exact" reste atteignable.
-function cap5(x){return x>5?5:x;}
-function dispPn(v){return(v>=5)?'5+':v;}
-
 function calcPts(pn,r,odds){
   if(!pn||!r)return 0;
   // Cas TAB : score nul réel + vainqueur désigné par l'admin (odds.win défini)
   // Le joueur pronostique le score nul ET éventuellement le vainqueur aux tirs au but
   if(odds&&odds.win){
     var pronoNul=(pn.h===pn.a);
-    var exactNul=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+    var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
     var ref=odds.od; // côte du nul = référence pour les TAB
     if(!ref)ref=odds.win==='h'?odds.oh:odds.oa; // fallback si pas de côte nul
@@ -525,7 +530,7 @@ function calcPts(pn,r,odds){
     return 0;
   }
   // Cas normal (victoire nette)
-  var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+  var exact=(pn.h===r.h&&pn.a===r.a);
   var isNul=(r.h===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
@@ -552,7 +557,7 @@ function pts(user){
   for(var i=0;i<ids.length;i++){
     var pn=pr[ids[i]],r=res[ids[i]];if(!r)continue;pl++;
     var odds=getMatchOdds(+ids[i]);
-    var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+    var exact=(pn.h===r.h&&pn.a===r.a);
     var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
     var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
     var earned=calcPts(pn,r,odds);
@@ -568,7 +573,7 @@ function ptBadge(id,user){
   // Cas TAB
   if(odds&&odds.win){
     var pronoNul=(pn.h===pn.a);
-    var exactNul=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+    var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
     if(exactNul&&bonWinner)return{type:'ex',pts:earned};
     if(pronoNul&&bonWinner)return{type:'okd',pts:earned};
@@ -576,7 +581,7 @@ function ptBadge(id,user){
     return{type:'no',pts:0};
   }
   // Cas normal
-  var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+  var exact=(pn.h===r.h&&pn.a===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
   if(exact)return{type:'ex',pts:earned};
@@ -945,18 +950,32 @@ function pgMatchs(){
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
-// Génère un <select> de score pronostic : ?, 0,1,2,3,4,5+ (5+ stocké
-// comme la valeur entière 5 en base). Affiche "5+" sélectionné si la
-// valeur existante est ≥5 (saisie avant la migration ou score élevé).
-function pronoSelectHTML(id,val,disAttr){
-  var opts='<option value=""'+(val===''?' selected':'')+'>?</option>';
-  for(var i=0;i<=5;i++){
-    var label=(i===5)?'5+':String(i);
-    var sel=(val!==''&&(+val===i||(i===5&&+val>=5)))?' selected':'';
-    opts+='<option value="'+i+'"'+sel+'>'+label+'</option>';
-  }
+// Génère un stepper +/- pour la saisie de score pronostic (0, 1, 2...
+// sans plafond). La valeur réelle est gardée dans un <input type=hidden>,
+// l'affichage montre "?" tant qu'aucune valeur n'a été choisie.
+function pronoStepperHTML(id,val,locked){
+  var display=(val===''||val===null||val===undefined)?'?':val;
+  var disAttr=locked?' disabled':'';
+  return '<span class="pi-stepper">'
+    +'<button type="button" class="pi-btn pi-minus"'+disAttr+' onclick="hPronoStep(\''+id+'\',-1)">−</button>'
+    +'<span class="pi-val" id="'+id+'-disp">'+display+'</span>'
+    +'<input type="hidden" id="'+id+'" value="'+val+'"'+disAttr+'>'
+    +'<button type="button" class="pi-btn pi-plus"'+disAttr+' onclick="hPronoStep(\''+id+'\',1)">+</button>'
+    +'</span>';
+}
+function hPronoStep(id,delta){
+  var hidden=document.getElementById(id);
+  if(!hidden||hidden.disabled)return;
+  var cur=hidden.value;
+  var n=(cur==='')?-1:+cur; // "?" + un "+" doit amener à 0
+  n+=delta;
+  if(n<0)hidden.value='';
+  else{if(n>20)n=20;hidden.value=String(n);}
+  var disp=document.getElementById(id+'-disp');
+  if(disp)disp.textContent=(hidden.value==='')?'?':hidden.value;
+  updatePronoCount();
   var mid=id.replace(/^p[ha]/,'');
-  return '<select class="pi-sel" id="'+id+'"'+disAttr+' onchange="hPronoChange('+mid+')">'+opts+'</select>';
+  hPronoChange(+mid);
 }
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
@@ -987,7 +1006,7 @@ function cardMatch(m){
       else badgeH='<span class="badge no">&#10007; 0pt</span>';
     }
     var vh=pn?pn.h:'',va=pn?pn.a:'';
-    pronoBlock='<div class="pr">'+pronoSelectHTML('ph'+m.id,vh,dis)+'<span style="color:var(--muted)">-</span>'+pronoSelectHTML('pa'+m.id,va,dis)+badgeH+'</div>';
+    pronoBlock='<div class="pr">'+pronoStepperHTML('ph'+m.id,vh,dis!=='')+'<span style="color:var(--muted)">-</span>'+pronoStepperHTML('pa'+m.id,va,dis!=='')+badgeH+'</div>';
     // Menu TAB joueur : KO uniquement (barrages, 8es, quarts, demis, finale)
     // En phase de ligue, un nul reste un nul — pas de prolongations ni TAB
     if(!started&&m.ph!=='LIGUE'){
@@ -1051,16 +1070,24 @@ function pgClass(){
   if(!sb)return pgSetup();
   var board=lb();
   var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p><div class="card" style="padding:0;margin-top:20px">';
-  if(!board.length)return h+'<div class="empty">Aucun participant pour le moment.</div></div>';
-  var rows='';
-  for(var i=0;i<board.length;i++){
-    var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
-    var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
-    rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-     +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
-     +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
+  var classementHTML;
+  if(!board.length){classementHTML=h+'<div class="empty">Aucun participant pour le moment.</div></div>';}
+  else{
+    var rows='';
+    for(var i=0;i<board.length;i++){
+      var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
+      var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
+      rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
+       +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
+       +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
+    }
+    classementHTML=h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
-  return h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  // Confrontations (équipes / individuel), fusionnées ici depuis l'ancien
+  // onglet "Équipes" séparé — évite la confusion avec les équipes du
+  // tournoi (le contenu de pgConfrontations() est inchangé, juste imbriqué).
+  var cfHTML=pgConfrontations();
+  return classementHTML+'<div style="margin-top:32px">'+cfHTML+'</div>';
 }
 
 function pgLigue(){
@@ -1121,7 +1148,7 @@ function pgProfil(){
       var realScore=x.r?'<span style="font-size:.72rem;color:var(--muted);margin:0 6px">Réel:</span><span style="font-weight:700;color:var(--txt);font-size:.85rem">'+x.r.h+' - '+x.r.a+'</span>':'';
       rows+='<div class="pli"><span class="pmn">'+x.mm.h+' <span style="color:var(--muted)">vs</span> '+x.mm.a+'</span>'
         +'<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">'
-        +'<span style="font-size:.72rem;color:var(--muted)">Mon prono:</span><span class="psc2">'+dispPn(x.pn.h)+' - '+dispPn(x.pn.a)+'</span>'
+        +'<span style="font-size:.72rem;color:var(--muted)">Mon prono:</span><span class="psc2">'+x.pn.h+' - '+x.pn.a+'</span>'
         +realScore+badge+'</span></div>';
     }
     pronosH='<div class="card" style="padding:0 20px">'+rows+'</div>';
@@ -1640,7 +1667,7 @@ function pgConfrontations(){
             var odds=getMatchOdds(+prIds[pi]);
             var earned=calcPts(pn,r,odds);
             totalPts+=earned;
-            var exact=(cap5(pn.h)===cap5(r.h)&&cap5(pn.a)===cap5(r.a));
+            var exact=(pn.h===r.h&&pn.a===r.a);
             var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
             if(exact)exacts++;else if(goodW)bons++;
           }
@@ -1764,7 +1791,7 @@ function render(){
     if(GROUP_ID&&!S.user){document.getElementById('main').innerHTML=pgGroupLogin();return;}
     if(S.page==='matchs'&&S._prevPage!=='matchs'){var activeTab=getActivePhase();if(activeTab&&activeTab!==S.tab){S.tab=activeTab;S.jour='ALL';S.qf='all';}}
     S._prevPage=S.page;
-    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,confrontations:pgConfrontations,stats:pgStats};
+    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,stats:pgStats};
     var fn=pages[S.page]||pgAccueil;
     document.getElementById('main').innerHTML=fn();
     if(S.page==='matchs')setTimeout(scrollToFirstUnscored,80);
@@ -1782,7 +1809,6 @@ function renderNav(){
     {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
     {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
     {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
-    {p:'confrontations',ic:'⚔️',lb:'Équipes',ti:'⚔️'},
     {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
   ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
   if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
@@ -2292,7 +2318,6 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('click',function(e){var gm=e.target.closest?e.target.closest('[data-gm]'):null;if(gm)goToMatch(+gm.getAttribute('data-gm'));});
 document.addEventListener('input',function(e){if(e.target.classList.contains('pi'))updatePronoCount();});
-document.addEventListener('change',function(e){if(e.target.classList.contains('pi-sel'))updatePronoCount();});
 document.addEventListener('keydown',function(e){if(e.key==='Enter'){var lp=document.getElementById('lp'),lpw=document.getElementById('lpw');if(lp&&lpw&&(document.activeElement===lp||document.activeElement===lpw))hLogin();}});
 document.getElementById('ov').addEventListener('click',function(){document.getElementById('ov').classList.remove('open');});
 
@@ -2313,7 +2338,7 @@ async function init(){
   // propager silencieusement les qualifiés manquants au démarrage
   if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},1000);
   var _pg=localStorage.getItem('ldc_pg'),_tb=localStorage.getItem('ldc_tab');
-  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','confrontations','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
+  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
   if(_tb)S.tab=_tb;
   render();
 }
