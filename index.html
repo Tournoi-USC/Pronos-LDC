@@ -17,9 +17,13 @@
 <title>Prono LDC 26/27</title>
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Exo 2';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/exo-2-400.woff2') format('woff2')}
+@font-face{font-family:'Exo 2';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/exo-2-600.woff2') format('woff2')}
+@font-face{font-family:'Exo 2';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/exo-2-700.woff2') format('woff2')}
+@font-face{font-family:'Exo 2';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/exo-2-800.woff2') format('woff2')}
+@font-face{font-family:'Exo 2';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/exo-2-900.woff2') format('woff2')}
+</style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{overflow-x:hidden}
@@ -297,7 +301,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.7.1';
+var VERSION = '1.7.3';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1815,9 +1819,9 @@ function renderNav(){
   var items=S.user?[
     {p:'accueil',ic:'🏠',lb:'Accueil',ti:'🏠'},
     {p:'matchs',ic:'📅',lb:'Matchs',ti:'📅'},
-    {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
     {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
     {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
+    {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
     {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
   ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
   if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
