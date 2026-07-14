@@ -301,7 +301,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.9.0';
+var VERSION = '1.9.1';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -309,7 +309,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -1924,8 +1924,21 @@ function tAdm(){S.adm=!S.adm;render();}
 function go(p){S.page=p;localStorage.setItem('ldc_pg',p);render();window.scrollTo(0,0);}
 function goToMatch(matchId){var m=null;for(var i=0;i<M.length;i++){if(M[i].id===matchId){m=M[i];break;}}if(!m){go('matchs');return;}S.tab=m.ph||'LIGUE';S.jour='ALL';S.qf='all';go('matchs');setTimeout(function(){var el=document.getElementById('ph'+matchId)||document.getElementById('rh'+matchId);if(el){var card=el.closest('.mc');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});}},150);}
 function pgReglement(){
-  return '<div class="pt">📋 RÈGLEMENT</div><p class="psub">Calcul des points, TAB et jokers</p>'
-    +'<div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem;max-width:640px">'
+  if(!S.regTab)S.regTab='calculs';
+  var h='<div class="pt">📋 RÈGLEMENT</div><p class="psub">Calcul des points, TAB et jokers</p>';
+  var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
+    +'<button class="tb'+(S.regTab==='calculs'?' on':'')+'" onclick="S.regTab=\'calculs\';render()">🧮 Calculs</button>'
+    +'<button class="tb'+(S.regTab==='jokers'?' on':'')+'" onclick="S.regTab=\'jokers\';render()">🃏 Jokers</button>'
+    +'</div>';
+
+  if(S.regTab==='jokers'){
+    var jokersBody='<div style="max-width:640px">'
+      +'<div style="background:rgba(255,255,255,.03);border:1px dashed var(--bdr);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:.82rem">Système de jokers en préparation — les règles apparaîtront ici dès leur mise en ligne.</div>'
+      +'</div>';
+    return h+tabsH+jokersBody;
+  }
+
+  var calculsBody='<div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem;max-width:640px">'
 
       // Bon résultat
       +'<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px">'
@@ -1962,13 +1975,8 @@ function pgReglement(){
       // Note matchs non pronostiqués
       +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">⚠️ Un match sans pronostic saisi avant son coup d\'envoi ne rapporte aucun point et n\'est pas comptabilisé dans le classement.</div>'
 
-      // Jokers — section en préparation
-      +'<div style="border-top:1px solid var(--bdr);padding-top:14px;margin-top:6px">'
-      +'<div style="font-weight:700;font-size:.88rem;margin-bottom:8px">🃏 Jokers</div>'
-      +'<div style="background:rgba(255,255,255,.03);border:1px dashed var(--bdr);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:.82rem">Système de jokers en préparation — les règles apparaîtront ici dès leur mise en ligne.</div>'
-      +'</div>'
-
     +'</div>';
+  return h+tabsH+calculsBody;
 }
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='err'?' err':type==='info'?' info':'');t.textContent=msg;document.getElementById('tc').appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},3500);}
 
