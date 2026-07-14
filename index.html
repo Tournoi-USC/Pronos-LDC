@@ -301,7 +301,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.7.3';
+var VERSION = '1.8.0';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -526,11 +526,16 @@ function calcPts(pn,r,odds){
     var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
     var ref=odds.od; // côte du nul = référence pour les TAB
-    if(!ref)ref=odds.win==='h'?odds.oh:odds.oa; // fallback si pas de côte nul
+    var refWin=odds.win==='h'?odds.oh:odds.oa; // côte du vainqueur TAB
+    if(!ref)ref=refWin; // fallback si pas de côte nul
     if(!ref)return 0;
-    if(exactNul&&bonWinner)return Math.round(ref*10*100)/100; // score exact nul + bon vainqueur TAB
-    if(pronoNul&&bonWinner)return Math.round(ref*5*100)/100;  // prono nul + bon vainqueur TAB
-    if(pronoNul)return Math.round(ref*2*100)/100;              // prono nul seul (sans TAB correct)
+    // Bonus = côte du vainqueur TAB, ajoutée à la côte nul (uniquement si
+    // le vainqueur est aussi correctement deviné) — récompense la difficulté
+    // de deviner QUI gagne aux tirs au but, pas seulement le score nul.
+    var winBonus=(odds.od&&refWin)?refWin:0;
+    if(exactNul&&bonWinner)return Math.round((ref+winBonus)*10*100)/100; // (côte nul + côte vainqueur) × 10
+    if(pronoNul&&bonWinner)return Math.round((ref+winBonus)*5*100)/100;  // (côte nul + côte vainqueur) × 5
+    if(pronoNul)return Math.round(ref*2*100)/100;                        // prono nul seul (sans TAB correct)
     return 0;
   }
   // Cas normal (victoire nette)
@@ -990,10 +995,20 @@ function cardMatch(m){
 
   var oddsBlock='';
   if(m.oh&&m.oa){
+    var winSide=null;
+    if(res){
+      if(m.win)winSide=m.win;
+      else if(res.h!==res.a)winSide=res.h>res.a?'h':'a';
+      else winSide='d';
+    }
+    var oddPill=function(side,txt,baseStyle){
+      var ring=(winSide===side)?';border:2px solid var(--grn);border-radius:10px;padding:1px 7px':'';
+      return '<span style="'+baseStyle+ring+'">'+txt+'</span>';
+    };
     oddsBlock='<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 6px;padding:4px 8px;background:rgba(26,86,219,.08);border-radius:6px;font-size:.72rem">'
-      +'<span style="color:var(--gold);font-weight:700">'+m.oh.toFixed(2)+'</span>'
-      +(m.od?'<span style="color:var(--muted)">nul '+m.od.toFixed(2)+'</span>':'')
-      +'<span style="color:var(--gold);font-weight:700">'+m.oa.toFixed(2)+'</span>'
+      +oddPill('h',m.oh.toFixed(2),'color:var(--gold);font-weight:700')
+      +(m.od?oddPill('d','nul '+m.od.toFixed(2),'color:var(--muted)'):'')
+      +oddPill('a',m.oa.toFixed(2),'color:var(--gold);font-weight:700')
       +'</div>';
   }
 
@@ -2400,11 +2415,11 @@ init();
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
             <span style="color:var(--txt)">Score nul + bon vainqueur TAB</span>
-            <span style="color:var(--muted);font-weight:600">côte nul × 5</span>
+            <span style="color:var(--muted);font-weight:600">(côte nul + côte vainqueur) × 5</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
             <span style="color:var(--gold);font-weight:700">🎯 Score exact nul + bon vainqueur TAB</span>
-            <span style="color:var(--gold);font-weight:700">côte nul × 10</span>
+            <span style="color:var(--gold);font-weight:700">(côte nul + côte vainqueur) × 10</span>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">
