@@ -306,8 +306,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.0';
-var BUILD   = '13/07/2026';
+var VERSION = '2.0.1';
+var BUILD   = '15/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -347,10 +347,20 @@ var DB_JOKERS_RESOLVED={}; // {userId:{matchId:bonus_points}} — jokers déjà 
 // cette Edge Function — jamais directement via la clé anon.
 function secureFnUrl(){return SUPABASE_URL+'/functions/v1/secure-actions';}
 async function secureCall(action,payload){
+  var r;
   try{
-    var r=await fetch(secureFnUrl(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},payload||{}))});
-    return await r.json();
-  }catch(e){return{ok:false,msg:'Erreur réseau: '+e.message};}
+    r=await fetch(secureFnUrl(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},payload||{}))});
+  }catch(e){return{ok:false,msg:'Erreur réseau : '+e.message};}
+  var parsed;
+  try{
+    parsed=await r.json();
+  }catch(e){
+    // Réponse non-JSON (ex: page d'erreur de la passerelle Supabase avant
+    // même d'atteindre notre code, comme un 401 lié à la vérification JWT).
+    return{ok:false,msg:'Erreur serveur (HTTP '+r.status+'). Vérifiez que secure-actions est bien déployée sans vérification JWT.'};
+  }
+  if(parsed&&!parsed.ok&&!parsed.msg)parsed.msg='Erreur (HTTP '+r.status+')';
+  return parsed;
 }
 
 function initSB(){
