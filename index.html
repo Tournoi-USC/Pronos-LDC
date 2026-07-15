@@ -46,6 +46,8 @@ input,button,select,textarea{font-family:inherit}
 .admin-banner.on{display:flex}
 .sb{width:var(--sw);background:var(--nav);position:fixed;top:var(--ban);left:0;height:calc(100vh - var(--ban));display:flex;flex-direction:column;z-index:100;border-right:1px solid var(--bdr)}
 .sb-logo{padding:20px;display:flex;align-items:center;gap:10px;color:var(--gold);font-weight:800;font-size:1.1rem;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none}
+.mtop{display:none;position:fixed;top:var(--ban);left:0;right:0;height:46px;background:var(--nav);border-bottom:1px solid var(--bdr);align-items:center;justify-content:center;gap:10px;z-index:90;transition:top .15s}
+.mtop img{height:28px;border-radius:4px}
 .sb-nav{padding:12px 0;flex:1}
 .ni{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;color:var(--muted);font-size:.95rem;transition:all .15s;user-select:none}
 .ni:hover{color:var(--txt);background:rgba(255,255,255,.05)}
@@ -187,6 +189,8 @@ input,button,select,textarea{font-family:inherit}
 @media(max-width:768px){
   .sb{display:none}
   .bnav{display:flex}
+  .mtop{display:flex}
+  body{padding-top:calc(var(--ban) + 46px)}
   .main{margin-left:0;padding:16px;padding-bottom:140px;max-width:100vw}
   .toast{bottom:70px;right:50%;transform:translateX(50%)}
   .pt{font-size:1.8rem}
@@ -244,10 +248,11 @@ input,button,select,textarea{font-family:inherit}
 <body>
 <div id="adm-ban" class="admin-banner">&#9889; MODE ADMIN ACTIF &mdash; Saisie des scores activée <span style="opacity:.6;font-size:.7rem;margin-left:8px">(visible uniquement pour toi)</span></div>
 <nav class="bnav" id="bnav" aria-label="Navigation principale"></nav>
+<div id="mtop" class="mtop"></div>
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" title="Cliquer : retour à l'accueil" style="cursor:pointer">&#9917; <span>PRONO LDC 26/27</span><span id="ver-badge" style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.5</span></div>
+  <div class="sb-logo" onclick="logoClick()" title="Cliquer : retour à l'accueil" style="cursor:pointer"><span id="sb-logos" style="display:inline-flex;align-items:center;gap:6px;margin-right:6px"></span>&#9917; <span>PRONO LDC 26/27</span><span id="ver-badge" style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.5</span></div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
 </nav>
@@ -301,7 +306,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.9.1';
+var VERSION = '2.0.0';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -309,7 +314,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -318,9 +323,26 @@ var logoClicks=0,logoTimer=null;
 // (changer avatar, saisir un score...) sans redemander à chaque fois.
 var SESSION_PW=null,SESSION_PIN=null;
 var USERS_SAFE_COLS='id,pseudo_key,pseudo_display,avatar,group_id';
-var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[]};
+var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[],assets:{}};
 var sb=null,SB_ERROR='';
 var AVATAR_LIST=['⚽','🥅','🏆','🥇','🥈','🥉','🎽','👟','🧤','🟨','🟥','📣','🏟️','🧣','🦶','🐐','🦁','🦅','🐯','🐺','🦊','🔥','⭐','🚀'];
+var JOKER_ORDER=['parachute','sniper','vague','double','chasseur','tab_specialiste','duel','raid','regicide','visionnaire','pirate','loto'];
+var JOKER_META={
+  parachute:{ic:'🛡️',name:'Parachute',desc:'Remonte tes points au minimum "bon résultat" si tu rates ton pronostic.',target:null},
+  sniper:{ic:'🥅',name:'Sniper',desc:'Si score exact : bonus de +50% sur les points gagnés.',target:null},
+  vague:{ic:'🌊',name:'La Vague',desc:'Si score exact : chaque autre membre de ton groupe reçoit +1 pt.',target:null},
+  double:{ic:'⚡',name:'Le Doublé',desc:'Double tes points gagnés sur ce match, quel que soit le résultat.',target:null},
+  chasseur:{ic:'🦁',name:'Chasseur de Cotes',desc:'Si bon résultat+ : bonus égal à (côte du vainqueur × 2)% de tes points.',target:null},
+  tab_specialiste:{ic:'🔄',name:'Spécialiste TAB',desc:'Triple tes points sur un match KO, uniquement s\'il va aux tirs au but.',target:null},
+  duel:{ic:'⚔️',name:'Le Duel',desc:'Cible un joueur d\'un groupe adverse en confrontation : si tu fais mieux que lui, tu gagnes la différence de points.',target:'user'},
+  raid:{ic:'🌪️',name:'Le Raid',desc:'Ton groupe vs le groupe adverse sur ce match : si le total de ton groupe l\'emporte, chacun reçoit +1 pt.',target:'group'},
+  regicide:{ic:'👑',name:'Le Régicide',desc:'Cible le leader du classement (hors ton groupe) : s\'il rate son pronostic, tu gagnes 2× la côte du vainqueur.',target:'user'},
+  visionnaire:{ic:'🔮',name:'Le Visionnaire',desc:'Si score exact : ×4 sur tes points. À activer au moins 7 jours avant le match — ton prono sera alors verrouillé.',target:null},
+  pirate:{ic:'🏴‍☠️',name:'Le Pirate',desc:'Cible un rival : s\'il fait score exact sur ce match, tu reçois 50% de ses points en bonus (il garde les siens).',target:'user'},
+  loto:{ic:'🎰',name:'Le Loto',desc:'Multiplicateur aléatoire tiré après le résultat : ×0.5, ×1, ×1.5 ou ×2.',target:null}
+};
+var DB_JOKERS=[]; // inventaire du joueur connecté (rempli au login)
+var DB_JOKERS_RESOLVED={}; // {userId:{matchId:bonus_points}} — jokers déjà résolus, visibles publiquement
 // Toutes les écritures sensibles (mdp, PIN, actions admin) passent par
 // cette Edge Function — jamais directement via la clé anon.
 function secureFnUrl(){return SUPABASE_URL+'/functions/v1/secure-actions';}
@@ -389,6 +411,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
     for(var ei=0;ei<DB.users.length;ei++)if(DB.users[ei].pseudo_key===k){DB.users[ei]=r.user;break;}
     if(!DB.pronos[k])DB.pronos[k]={};
     (r.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+    if(k!==ADMIN)DB_JOKERS=r.myJokers||[];
     S.user=k;
     localStorage.setItem('ldc_ses',k);
     localStorage.setItem('ldc_grp',r.user.group_id||'');
@@ -409,6 +432,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
       SESSION_PW=pw;
       DB.users.push(r2.user);DB.userMap[k]=r2.user;DB.pronos[k]={};
       (r2.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+      if(k!==ADMIN)DB_JOKERS=r2.myJokers||[];
       S.user=k;
       localStorage.setItem('ldc_ses',k);
       localStorage.setItem('ldc_grp',r2.user.group_id||'');
@@ -449,7 +473,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   }
   return{ok:true};
 }
-function doLogout(){S.user=null;adminMode=false;SESSION_PW=null;SESSION_PIN=null;localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
+function doLogout(){S.user=null;adminMode=false;SESSION_PW=null;SESSION_PIN=null;DB_JOKERS=[];localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
 async function chgPw(o,n){
   if(!S.user)return{ok:false,msg:'Non connecté'};
   if(n.length<3)return{ok:false,msg:'Trop court'};
@@ -561,6 +585,7 @@ function calcPts(pn,r,odds){
   return 0;
 }
 
+function resolveUid(u){if(typeof u==='number')return u;var uu=DB.userMap[u];if(uu)return uu.id;var n=+u;return isNaN(n)?null:n;}
 function pts(user){
   var pr=uPronos(user),res=DB.results,p=0,ex=0,ok=0,okd=0,pl=0,ids=Object.keys(pr);
   for(var i=0;i<ids.length;i++){
@@ -573,30 +598,40 @@ function pts(user){
     p+=earned;
     if(exact)ex++;else if(goodDiff)okd++;else if(goodWinner)ok++;
   }
+  // Bonus jokers résolus (activés + match joué) — voir DB_JOKERS_RESOLVED
+  var uidNum=resolveUid(user);
+  if(uidNum&&DB_JOKERS_RESOLVED[uidNum]){
+    var mb=DB_JOKERS_RESOLVED[uidNum];
+    Object.keys(mb).forEach(function(mid){p+=mb[mid];});
+  }
   return{p:Math.round(p*100)/100,ex:ex,ok:ok,okd:okd,pl:pl};
 }
 function ptBadge(id,user){
   var pn=uPronos(user)[id],r=getRes(id);if(!pn||!r)return null;
   var odds=getMatchOdds(+id);
   var earned=calcPts(pn,r,odds);
+  var uidNum=resolveUid(user),jokBonus=0;
+  if(uidNum&&DB_JOKERS_RESOLVED[uidNum]&&DB_JOKERS_RESOLVED[uidNum][id])jokBonus=DB_JOKERS_RESOLVED[uidNum][id];
+  earned=Math.round((earned+jokBonus)*100)/100;
+  var jok=jokBonus!==0;
   // Cas TAB
   if(odds&&odds.win){
     var pronoNul=(pn.h===pn.a);
     var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
-    if(exactNul&&bonWinner)return{type:'ex',pts:earned};
-    if(pronoNul&&bonWinner)return{type:'okd',pts:earned};
-    if(pronoNul)return{type:'ok',pts:earned};
-    return{type:'no',pts:0};
+    if(exactNul&&bonWinner)return{type:'ex',pts:earned,jok:jok};
+    if(pronoNul&&bonWinner)return{type:'okd',pts:earned,jok:jok};
+    if(pronoNul)return{type:'ok',pts:earned,jok:jok};
+    return{type:jok?'ok':'no',pts:earned,jok:jok};
   }
   // Cas normal
   var exact=(pn.h===r.h&&pn.a===r.a);
   var goodWinner=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
   var goodDiff=goodWinner&&Math.abs(pn.h-pn.a)===Math.abs(r.h-r.a)&&!exact;
-  if(exact)return{type:'ex',pts:earned};
-  if(goodDiff)return{type:'okd',pts:earned};
-  if(goodWinner)return{type:'ok',pts:earned};
-  return{type:'no',pts:0};
+  if(exact)return{type:'ex',pts:earned,jok:jok};
+  if(goodDiff)return{type:'okd',pts:earned,jok:jok};
+  if(goodWinner)return{type:'ok',pts:earned,jok:jok};
+  return{type:jok?'ok':'no',pts:earned,jok:jok};
 }
 
 function lb(){
@@ -986,6 +1021,13 @@ function hPronoStep(id,delta){
   var mid=id.replace(/^p[ha]/,'');
   hPronoChange(+mid);
 }
+function renderLogos(){
+  var club=DB.assets&&DB.assets.logo_club,ldc=DB.assets&&DB.assets.logo_ldc;
+  var sbEl=document.getElementById('sb-logos');
+  if(sbEl)sbEl.innerHTML=(club?'<img src="'+club+'" style="height:26px;border-radius:4px">':'')+(ldc?'<img src="'+ldc+'" style="height:26px;border-radius:4px">':'');
+  var mtEl=document.getElementById('mtop');
+  if(mtEl)mtEl.innerHTML=(club?'<img src="'+club+'" alt="Logo club">':'')+(ldc?'<img src="'+ldc+'" alt="Logo LDC">':'')+(!club&&!ldc?'<span style="font-weight:800;color:var(--gold);font-size:.95rem">&#9917; PRONO LDC 26/27</span>':'');
+}
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(m.dt+'T'+m.ti+':00+01:00'),started=(new Date())>=dt;
@@ -1181,11 +1223,124 @@ function pgProfil(){
     }
     pronosH='<div class="card" style="padding:0 20px">'+rows+'</div>';
   }
+  var profTabsH='<div class="tabs" style="margin:20px 0 12px">'
+    +'<button class="tb'+(S.profTab==='pronos'?' on':'')+'" onclick="S.profTab=\'pronos\';render()">📋 Mes pronostics</button>'
+    +'<button class="tb'+(S.profTab==='jokers'?' on':'')+'" onclick="S.profTab=\'jokers\';render()">🃏 Mes jokers</button>'
+    +'</div>';
+  var tabBody=(S.profTab==='jokers')?renderMyJokers():('<h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px">MES PRONOSTICS</h3>'+pronosH);
   return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
     +avEditBlock
     +cpwBlock
     +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+fmtPts(st.p)+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
-    +'<h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px">MES PRONOSTICS</h3>'+pronosH;
+    +profTabsH+tabBody;
+}
+
+function renderMyJokers(){
+  var pending=DB_JOKERS.filter(function(j){return!j.joker_type;});
+  var available=DB_JOKERS.filter(function(j){return j.joker_type&&!j.activated_at;});
+  var activated=DB_JOKERS.filter(function(j){return j.activated_at&&!j.resolved;});
+  var resolved=DB_JOKERS.filter(function(j){return j.resolved;});
+  var h='';
+
+  if(pending.length){
+    h+='<h4 style="margin-bottom:8px">🎁 Choix libre à faire ('+pending.length+')</h4>';
+    pending.forEach(function(j){
+      h+='<div class="card" style="margin-bottom:10px"><div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Obtenu via '+(j.obtained_via==='exact'?'un score exact':'un palier')+' — choisis ton joker :</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:6px">'
+        +JOKER_ORDER.map(function(jt){var m=JOKER_META[jt];return '<button class="rsb" onclick="hChooseJoker('+j.id+',\''+jt+'\')" title="'+m.desc.replace(/"/g,'&quot;')+'">'+m.ic+' '+m.name+'</button>';}).join('')
+        +'</div></div>';
+    });
+  }
+
+  h+='<h4 style="margin:16px 0 8px">🎒 En stock ('+available.length+')</h4>';
+  if(!available.length)h+='<div class="empty" style="margin-bottom:16px">Aucun joker prêt à l\'emploi pour l\'instant.</div>';
+  else available.forEach(function(j){
+    var m=JOKER_META[j.joker_type];
+    h+='<div class="card" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+      +'<div><div style="font-weight:700">'+m.ic+' '+m.name+'</div><div style="font-size:.76rem;color:var(--muted);max-width:420px">'+m.desc+'</div></div>'
+      +'<button class="btn-g" onclick="tActivateJoker('+j.id+')">Activer</button>'
+      +'</div>';
+    if(S.activateJokerId===j.id)h+=jokerActivationForm(j);
+  });
+
+  if(activated.length){
+    h+='<h4 style="margin:16px 0 8px">⏳ Activés, en attente du résultat ('+activated.length+')</h4>';
+    activated.forEach(function(j){
+      var m=JOKER_META[j.joker_type],mm=null;for(var i=0;i<M.length;i++)if(M[i].id===j.match_id){mm=M[i];break;}
+      h+='<div class="card" style="margin-bottom:8px"><div style="font-weight:700">'+m.ic+' '+m.name+'</div>'+(mm?'<div style="font-size:.78rem;color:var(--muted)">'+mm.h+' vs '+mm.a+'</div>':'')+'</div>';
+    });
+  }
+
+  if(resolved.length){
+    h+='<h4 style="margin:16px 0 8px">✅ Utilisés ('+resolved.length+')</h4>';
+    resolved.slice().reverse().forEach(function(j){
+      var m=JOKER_META[j.joker_type]||{ic:'🎁',name:j.joker_type};
+      var mm=null;for(var i=0;i<M.length;i++)if(M[i].id===j.match_id){mm=M[i];break;}
+      var bp=j.bonus_points||0;
+      h+='<div class="card" style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<div><div style="font-weight:700">'+m.ic+' '+m.name+'</div>'+(mm?'<div style="font-size:.78rem;color:var(--muted)">'+mm.h+' vs '+mm.a+'</div>':'')+'</div>'
+        +'<span style="font-weight:800;color:'+(bp>0?'var(--grn)':'var(--muted)')+'">'+(bp>0?'+':'')+fmtPts(bp)+' pts</span>'
+        +'</div>';
+    });
+  }
+
+  return h;
+}
+
+function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;render();}
+
+function jokerActivationForm(j){
+  var meta=JOKER_META[j.joker_type];
+  var now=Date.now();
+  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;var k=new Date(m.dt+'T'+m.ti+':00').getTime();return!isNaN(k)&&k>now;});
+  var matchOpts=upcoming.map(function(m){return '<option value="'+m.id+'">'+m.h+' vs '+m.a+' — '+m.dt+' '+m.ti+'</option>';}).join('');
+  var targetField='';
+  if(meta.target==='user'){
+    var me=DB.userMap[S.user];
+    var others=DB.users.filter(function(u){return u.id!==(me?me.id:null)&&u.pseudo_key!==ADMIN;});
+    targetField='<select class="fi" id="jok-target-user" style="margin-top:8px"><option value="">— Choisir un joueur cible —</option>'
+      +others.map(function(u){return '<option value="'+u.id+'">'+u.pseudo_display+'</option>';}).join('')+'</select>';
+  }else if(meta.target==='group'){
+    var me2=DB.userMap[S.user];
+    var otherGroups=DB.groups.filter(function(g){return!me2||g.id!==me2.group_id;});
+    targetField='<select class="fi" id="jok-target-group" style="margin-top:8px"><option value="">— Choisir un groupe adverse —</option>'
+      +otherGroups.map(function(g){return '<option value="'+g.id+'">'+g.name+'</option>';}).join('')+'</select>';
+  }
+  return '<div class="card" style="margin-top:-4px;margin-bottom:10px;border-color:var(--gold)">'
+    +'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Activer '+meta.ic+' '+meta.name+' sur quel match ?</div>'
+    +'<select class="fi" id="jok-target-match">'+matchOpts+'</select>'
+    +targetField
+    +'<div style="margin-top:10px;display:flex;gap:8px"><button class="btn-g" onclick="hActivateJoker('+j.id+')">Confirmer</button><button class="btn-o" onclick="tActivateJoker('+j.id+')">Annuler</button></div>'
+    +'<div id="jok-act-err" style="color:var(--red);font-size:.78rem;margin-top:6px"></div>'
+    +'</div>';
+}
+
+async function hChooseJoker(inventoryId,jokerType){
+  if(!SESSION_PW){toast('Reconnecte-toi pour confirmer ce choix.','err');return;}
+  var r=await secureCall('chooseJoker',{pseudo:S.user,password:SESSION_PW,inventoryId:inventoryId,jokerType:jokerType});
+  if(!r.ok){toast(r.msg||'Erreur','err');return;}
+  var row=DB_JOKERS.find(function(j){return j.id===inventoryId;});
+  if(row)row.joker_type=jokerType;
+  toast(JOKER_META[jokerType].ic+' '+JOKER_META[jokerType].name+' ajouté à ton stock ✓');
+  render();
+}
+
+async function hActivateJoker(inventoryId){
+  var matchSel=document.getElementById('jok-target-match');
+  var matchId=matchSel?+matchSel.value:null;
+  var e=document.getElementById('jok-act-err');
+  if(!matchId){if(e)e.textContent='Choisis un match.';return;}
+  if(!SESSION_PW){toast('Reconnecte-toi pour activer ce joker.','err');return;}
+  var payload={pseudo:S.user,password:SESSION_PW,inventoryId:inventoryId,matchId:matchId};
+  var tu=document.getElementById('jok-target-user');if(tu&&tu.value)payload.targetUserId=tu.value;
+  var tg=document.getElementById('jok-target-group');if(tg&&tg.value)payload.targetGroupId=tg.value;
+  var r=await secureCall('activateJoker',payload);
+  if(!r.ok){if(e)e.textContent=r.msg||'Erreur';return;}
+  var row=DB_JOKERS.find(function(j){return j.id===inventoryId;});
+  if(row){row.match_id=matchId;row.activated_at=new Date().toISOString();if(payload.targetUserId)row.target_user_id=payload.targetUserId;if(payload.targetGroupId)row.target_group_id=payload.targetGroupId;}
+  S.activateJokerId=null;
+  toast('Joker activé ✓');
+  render();
 }
 
 function buildAdminPanel(){
@@ -1341,12 +1496,26 @@ function buildAdminPanel(){
       +'<div id="te" style="font-size:.78rem;margin-top:6px"></div>';
   }
   else if(S.adminTab==='config'){
+    var logoClub=DB.assets&&DB.assets.logo_club,logoLdc=DB.assets&&DB.assets.logo_ldc;
     panelContent='<h4 style="margin-bottom:8px">&#128273; Changer le PIN admin</h4>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
       +'<input class="fi" id="opin" type="password" placeholder="PIN actuel" style="width:110px">'
       +'<input class="fi" id="npin" type="password" placeholder="Nouveau PIN" style="width:110px">'
       +'<button class="btn-g" onclick="hChgPin()">Modifier</button></div>'
       +'<div id="pe" style="color:var(--red);font-size:.78rem;margin-top:5px"></div>'
+      +'<hr class="hr2">'
+      +'<h4 style="margin-bottom:8px">&#127917; Logos du site</h4>'
+      +'<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<div><div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Logo club (identité du groupe)</div>'
+      +(logoClub?'<img src="'+logoClub+'" style="height:44px;border-radius:6px;margin-bottom:6px;display:block">':'')
+      +'<input type="file" accept="image/*" id="logo-club-file" style="font-size:.75rem"></div>'
+      +'<div><div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Logo tournoi (LDC)</div>'
+      +(logoLdc?'<img src="'+logoLdc+'" style="height:44px;border-radius:6px;margin-bottom:6px;display:block">':'')
+      +'<input type="file" accept="image/*" id="logo-ldc-file" style="font-size:.75rem"></div>'
+      +'</div>'
+      +'<button class="btn-g" onclick="hUploadLogos()">&#11014; Envoyer</button>'
+      +'<div id="logo-err" style="color:var(--red);font-size:.78rem;margin-top:5px"></div>'
+      +'<div style="font-size:.7rem;color:var(--muted);margin-top:6px">PNG/JPG/SVG, 1 Mo max par fichier.</div>'
       +'<hr class="hr2">'
       +'<h4 style="margin-bottom:8px">&#128203; Infos Edge Functions</h4>'
       +'<p style="font-size:.75rem;color:var(--muted);line-height:1.6">'
@@ -2089,6 +2258,34 @@ async function hChangeUserGroup(userId, newGroupId){
   }
 }
 async function hChgPin(){var o=gv('opin'),n=gv('npin'),e=document.getElementById('pe');var r=await secureCall('adminChangePin',{oldPin:o,newPin:n});if(!r.ok){if(e){e.textContent=r.msg||'Erreur';e.style.color='var(--red)';}return;}SESSION_PIN=n;if(e){e.textContent='PIN modifié ✓';e.style.color='var(--grn)';}}
+
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onload=function(){var res=reader.result;var b64=res.split(',')[1];resolve({b64:b64,type:file.type});};
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function hUploadLogos(){
+  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
+  var e=document.getElementById('logo-err');if(e)e.textContent='';
+  var clubInp=document.getElementById('logo-club-file'),ldcInp=document.getElementById('logo-ldc-file');
+  var jobs=[];
+  if(clubInp&&clubInp.files&&clubInp.files[0])jobs.push({key:'club',file:clubInp.files[0]});
+  if(ldcInp&&ldcInp.files&&ldcInp.files[0])jobs.push({key:'ldc',file:ldcInp.files[0]});
+  if(!jobs.length){if(e)e.textContent='Choisis au moins un fichier.';return;}
+  for(var i=0;i<jobs.length;i++){
+    var job=jobs[i];
+    if(job.file.size>1024*1024){if(e)e.textContent='"'+job.file.name+'" dépasse 1 Mo.';return;}
+    var enc=await fileToBase64(job.file);
+    var r=await secureCall('adminUploadLogo',{pin:SESSION_PIN,logoKey:job.key,fileBase64:enc.b64,contentType:enc.type});
+    if(!r.ok){if(e)e.textContent=r.msg||'Erreur upload '+job.key;return;}
+    DB.assets=DB.assets||{};DB.assets['logo_'+job.key]=r.url;
+  }
+  toast('Logo(s) mis à jour ✓');
+  render();
+}
 async function hCreateGroup(){var name=gv('new-grp').trim(),e=document.getElementById('grpe');if(!name){if(e){e.textContent='Entrez un nom.';e.style.color='var(--red)';}return;}var r=await createGroup(name);if(r.ok){toast('Groupe "'+r.group.name+'" créé ✓');var inp=document.getElementById('new-grp');if(inp)inp.value='';render();}else{if(e){e.textContent=r.msg;e.style.color='var(--red)';}}}
 async function hDelGroup(gid){if(!confirm('Supprimer ce groupe ?'))return;var r=await deleteGroup(gid);if(!r.ok){toast(r.msg||'Erreur','err');return;}toast('Groupe supprimé');render();}
 function hCopyUrl(url){navigator.clipboard.writeText(url).then(function(){toast('URL copiée ✓');}).catch(function(){prompt('Copiez :',url);});}
@@ -2268,6 +2465,18 @@ async function loadAll(){
     // côté client (table config verrouillée par RLS) — voir secure-actions.
     var rM=await sb.from('matches').select('*').order('id');
     if(rM.data&&rM.data.length>0){M=rM.data.map(function(r){return{id:r.id,ph:r.phase,gr:r.grp,dt:r.dt,ti:r.ti,h:r.home,a:r.away,v:r.venue,oh:r.odds_h?+r.odds_h:null,oa:r.odds_a?+r.odds_a:null,od:r.odds_d?+r.odds_d:null,win:r.winner||null};});}
+    // Jokers déjà résolus (match joué) — publics via RLS, utilisés pour
+    // ajuster le classement de tout le monde, pas seulement le joueur connecté.
+    var rJ=await sb.from('jokers_inventory').select('user_id,match_id,bonus_points').eq('resolved',true);
+    DB_JOKERS_RESOLVED={};
+    (rJ.data||[]).forEach(function(j){
+      if(!DB_JOKERS_RESOLVED[j.user_id])DB_JOKERS_RESOLVED[j.user_id]={};
+      DB_JOKERS_RESOLVED[j.user_id][j.match_id]=(DB_JOKERS_RESOLVED[j.user_id][j.match_id]||0)+(+j.bonus_points||0);
+    });
+    // Logos du site (LDC + club), publics
+    var rSA=await sb.from('site_assets').select('*');
+    (rSA.data||[]).forEach(function(a){DB.assets=DB.assets||{};DB.assets[a.key]=a.url;});
+    renderLogos();
   }catch(e){toast('Erreur chargement: '+e.message,'err');}
 }
 
