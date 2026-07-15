@@ -301,7 +301,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.9.1';
+var VERSION = '1.8.0';
 var BUILD   = '13/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -309,7 +309,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -1089,7 +1089,7 @@ function pgClass(){
   if(!sb)return pgSetup();
   var board=lb();
   if(!S.classTab)S.classTab='general'; // onglet actif : 'general' ou 'confrontations'
-  var h='<div class="pt">&#127942; CLASSEMENT</div><p class="psub">Classement du groupe</p>';
+  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p>';
   var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
     +'<button class="tb'+(S.classTab==='general'?' on':'')+'" onclick="S.classTab=\'general\';render()">🏆 Général</button>'
     +'<button class="tb'+(S.classTab==='confrontations'?' on':'')+'" onclick="S.classTab=\'confrontations\';render()">⚔️ Confrontations</button>'
@@ -1819,7 +1819,7 @@ function render(){
     if(GROUP_ID&&!S.user){document.getElementById('main').innerHTML=pgGroupLogin();return;}
     if(S.page==='matchs'&&S._prevPage!=='matchs'){var activeTab=getActivePhase();if(activeTab&&activeTab!==S.tab){S.tab=activeTab;S.jour='ALL';S.qf='all';}}
     S._prevPage=S.page;
-    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,reglement:pgReglement,stats:pgStats};
+    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,stats:pgStats};
     var fn=pages[S.page]||pgAccueil;
     document.getElementById('main').innerHTML=fn();
     if(S.page==='matchs')setTimeout(scrollToFirstUnscored,80);
@@ -1837,10 +1837,9 @@ function renderNav(){
     {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
     {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
     {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
-    {p:'reglement',ic:'📋',lb:'Règles',ti:'📋'},
     {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
   ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
-  if(isAdmin())items.splice(6,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
+  if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
 
   var h='';
   for(var i=0;i<items.length;i++){
@@ -1923,61 +1922,8 @@ async function hChangeAvatar(){
 function tAdm(){S.adm=!S.adm;render();}
 function go(p){S.page=p;localStorage.setItem('ldc_pg',p);render();window.scrollTo(0,0);}
 function goToMatch(matchId){var m=null;for(var i=0;i<M.length;i++){if(M[i].id===matchId){m=M[i];break;}}if(!m){go('matchs');return;}S.tab=m.ph||'LIGUE';S.jour='ALL';S.qf='all';go('matchs');setTimeout(function(){var el=document.getElementById('ph'+matchId)||document.getElementById('rh'+matchId);if(el){var card=el.closest('.mc');if(card)card.scrollIntoView({behavior:'smooth',block:'center'});}},150);}
-function pgReglement(){
-  if(!S.regTab)S.regTab='calculs';
-  var h='<div class="pt">📋 RÈGLEMENT</div><p class="psub">Calcul des points, TAB et jokers</p>';
-  var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
-    +'<button class="tb'+(S.regTab==='calculs'?' on':'')+'" onclick="S.regTab=\'calculs\';render()">🧮 Calculs</button>'
-    +'<button class="tb'+(S.regTab==='jokers'?' on':'')+'" onclick="S.regTab=\'jokers\';render()">🃏 Jokers</button>'
-    +'</div>';
-
-  if(S.regTab==='jokers'){
-    var jokersBody='<div style="max-width:640px">'
-      +'<div style="background:rgba(255,255,255,.03);border:1px dashed var(--bdr);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:.82rem">Système de jokers en préparation — les règles apparaîtront ici dès leur mise en ligne.</div>'
-      +'</div>';
-    return h+tabsH+jokersBody;
-  }
-
-  var calculsBody='<div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem;max-width:640px">'
-
-      // Bon résultat
-      +'<div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px">'
-      +'<div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓ Bon résultat</div>'
-      +'<div style="color:var(--txt)">Bon vainqueur (ou nul correct) → <strong>côte × 2</strong></div>'
-      +'</div>'
-
-      // Bonne différence
-      +'<div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 12px">'
-      +'<div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓✓ Bon résultat + bonne différence de buts</div>'
-      +'<div style="color:var(--txt)">Même écart de buts que le résultat réel → <strong>côte × 5</strong></div>'
-      +'</div>'
-
-      // Score exact
-      +'<div style="background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);border-radius:8px;padding:10px 12px">'
-      +'<div style="color:var(--gold);font-weight:700;margin-bottom:3px">🎯 Score exact</div>'
-      +'<div style="color:var(--txt)">Score parfait → <strong>côte × 10</strong></div>'
-      +'</div>'
-
-      // Note côtes
-      +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0">Cotes Pinnacle (OddsPapi) · figées la veille du match</div>'
-
-      // TAB
-      +'<div style="border-top:1px solid var(--bdr);padding-top:10px">'
-      +'<div style="font-weight:700;font-size:.88rem;margin-bottom:8px">⚽ Matchs nuls (TAB)</div>'
-      +'<div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)"><span style="color:var(--txt)">Score nul seul (sans TAB correct)</span><span style="color:var(--muted);font-weight:600">côte nul × 2</span></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)"><span style="color:var(--txt)">Score nul + bon vainqueur TAB</span><span style="color:var(--muted);font-weight:600">(côte nul + côte vainqueur) × 5</span></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span style="color:var(--gold);font-weight:700">🎯 Score exact nul + bon vainqueur TAB</span><span style="color:var(--gold);font-weight:700">(côte nul + côte vainqueur) × 10</span></div>'
-      +'</div>'
-      +'<div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">Le menu ⚽ TAB apparaît automatiquement quand vous saisissez un score nul sur un match KO.</div>'
-      +'</div>'
-
-      // Note matchs non pronostiqués
-      +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">⚠️ Un match sans pronostic saisi avant son coup d\'envoi ne rapporte aucun point et n\'est pas comptabilisé dans le classement.</div>'
-
-    +'</div>';
-  return h+tabsH+calculsBody;
-}
+function showRules(){var el=document.getElementById('rules-modal');if(el)el.style.display='flex';}
+function hideRules(){var el=document.getElementById('rules-modal');if(el)el.style.display='none';}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type==='err'?' err':type==='info'?' info':'');t.textContent=msg;document.getElementById('tc').appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},3500);}
 
 function switchAuthTab(tab){
@@ -2420,7 +2366,7 @@ async function init(){
   // propager silencieusement les qualifiés manquants au démarrage
   if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},1000);
   var _pg=localStorage.getItem('ldc_pg'),_tb=localStorage.getItem('ldc_tab');
-  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','reglement','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
+  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
   if(_tb)S.tab=_tb;
   render();
 }
@@ -2428,7 +2374,67 @@ init();
 </script>
 
 <!-- Modale règles du jeu -->
+<div id="rules-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)hideRules()">
+  <div class="modal" style="max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;font-size:1.05rem">📋 Règles de calcul des points</h3>
+      <button onclick="hideRules()" style="background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:.88rem">
 
+      <!-- Bon résultat -->
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓ Bon résultat</div>
+        <div style="color:var(--txt)">Bon vainqueur (ou nul correct) → <strong>côte × 2</strong></div>
+      </div>
+
+      <!-- Bonne différence -->
+      <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓✓ Bon résultat + bonne différence de buts</div>
+        <div style="color:var(--txt)">Même écart de buts que le résultat réel → <strong>côte × 5</strong></div>
+      </div>
+
+      <!-- Score exact -->
+      <div style="background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.3);border-radius:8px;padding:10px 12px">
+        <div style="color:var(--gold);font-weight:700;margin-bottom:3px">🎯 Score exact</div>
+        <div style="color:var(--txt)">Score parfait → <strong>côte × 10</strong></div>
+      </div>
+
+      <!-- Note cotes -->
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0">
+        Cotes Pinnacle (OddsPapi) · figées la veille du match
+      </div>
+
+      <!-- Séparateur TAB -->
+      <div style="border-top:1px solid var(--bdr);padding-top:10px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px">⚽ Matchs nuls (TAB)</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:.82rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
+            <span style="color:var(--txt)">Score nul seul (sans TAB correct)</span>
+            <span style="color:var(--muted);font-weight:600">côte nul × 2</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
+            <span style="color:var(--txt)">Score nul + bon vainqueur TAB</span>
+            <span style="color:var(--muted);font-weight:600">(côte nul + côte vainqueur) × 5</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+            <span style="color:var(--gold);font-weight:700">🎯 Score exact nul + bon vainqueur TAB</span>
+            <span style="color:var(--gold);font-weight:700">(côte nul + côte vainqueur) × 10</span>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">
+          Le menu ⚽ TAB apparaît automatiquement quand vous saisissez un score nul sur un match KO.
+        </div>
+      </div>
+
+      <!-- Note matchs non pronostiqués -->
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">
+        ⚠️ Un match sans pronostic saisi avant son coup d'envoi ne rapporte aucun point et n'est pas comptabilisé dans le classement.
+      </div>
+
+    </div>
+  </div>
+</div>
 
 
 
