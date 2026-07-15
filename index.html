@@ -18,13 +18,6 @@
 <meta name="theme-color" content="#1a56db">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
-@font-face{font-family:'Exo 2';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/exo-2-400.woff2') format('woff2')}
-@font-face{font-family:'Exo 2';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/exo-2-600.woff2') format('woff2')}
-@font-face{font-family:'Exo 2';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/exo-2-700.woff2') format('woff2')}
-@font-face{font-family:'Exo 2';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/exo-2-800.woff2') format('woff2')}
-@font-face{font-family:'Exo 2';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/exo-2-900.woff2') format('woff2')}
-</style>
-<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{overflow-x:hidden}
 :root{
@@ -40,8 +33,7 @@ body{overflow-x:hidden}
   --red:#ef4444;
   --sw:260px;--ban:0px
 }
-body{font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
-input,button,select,textarea{font-family:inherit}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
 .admin-banner{position:fixed;top:0;left:0;right:0;height:32px;background:var(--gold);color:#fff;font-size:.78rem;font-weight:800;display:none;align-items:center;justify-content:center;z-index:400;gap:8px}
 .admin-banner.on{display:flex}
 .sb{width:var(--sw);background:var(--nav);position:fixed;top:var(--ban);left:0;height:calc(100vh - var(--ban));display:flex;flex-direction:column;z-index:100;border-right:1px solid var(--bdr)}
@@ -92,12 +84,6 @@ input,button,select,textarea{font-family:inherit}
 .pi::-webkit-outer-spin-button,.pi::-webkit-inner-spin-button{-webkit-appearance:none}
 .pi:focus{border-color:var(--gold)}
 .pi:disabled{opacity:.45}
-.pi-stepper{display:inline-flex;align-items:center;gap:5px;vertical-align:middle}
-.pi-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--bdr);background:var(--bg);color:var(--txt);font-size:1rem;font-weight:700;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:all .12s;flex-shrink:0}
-.pi-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
-.pi-btn:active:not(:disabled){transform:scale(.88)}
-.pi-btn:disabled{opacity:.35;cursor:default}
-.pi-val{min-width:22px;text-align:center;font-size:1.1rem;font-weight:700;color:var(--txt)}
 .psb{padding:8px 14px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.83rem}
 .mf2{margin-top:8px;font-size:.72rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 .tv-tag{font-size:.68rem;padding:2px 6px;border-radius:4px;font-weight:700;display:inline-flex;align-items:center;gap:3px}
@@ -197,8 +183,6 @@ input,button,select,textarea{font-family:inherit}
   .lf{flex-direction:column}
   .htitle{font-size:2rem}
   .pi{width:52px;height:52px;font-size:1.2rem}
-  .pi-btn{width:32px;height:32px;font-size:1.15rem}
-  .pi-val{min-width:26px;font-size:1.25rem}
   .bktbl-wrap{max-width:calc(100vw - 32px);overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 #save-bar-portal{position:fixed;bottom:24px;left:0;right:0;z-index:210;display:flex;justify-content:center;pointer-events:none}
@@ -301,35 +285,20 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '1.8.0';
-var BUILD   = '13/07/2026';
+var VERSION = '1.4.2';
+var BUILD   = '12/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
-// Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
-// cours (jamais dans localStorage, jamais renvoyés par le serveur) —
-// réutilisés pour autoriser silencieusement les actions suivantes
-// (changer avatar, saisir un score...) sans redemander à chaque fois.
-var SESSION_PW=null,SESSION_PIN=null;
-var USERS_SAFE_COLS='id,pseudo_key,pseudo_display,avatar,group_id';
-var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[]};
+var DB={users:[],userMap:{},pronos:{},results:{},config:{pin:'1234'},groups:[],confrontations:[],confrontationGroups:[]};
 var sb=null,SB_ERROR='';
 var AVATAR_LIST=['⚽','🥅','🏆','🥇','🥈','🥉','🎽','👟','🧤','🟨','🟥','📣','🏟️','🧣','🦶','🐐','🦁','🦅','🐯','🐺','🦊','🔥','⭐','🚀'];
-// Toutes les écritures sensibles (mdp, PIN, actions admin) passent par
-// cette Edge Function — jamais directement via la clé anon.
-function secureFnUrl(){return SUPABASE_URL+'/functions/v1/secure-actions';}
-async function secureCall(action,payload){
-  try{
-    var r=await fetch(secureFnUrl(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},payload||{}))});
-    return await r.json();
-  }catch(e){return{ok:false,msg:'Erreur réseau: '+e.message};}
-}
 
 function initSB(){
   if(!SUPABASE_URL||SUPABASE_URL==='VOTRE_URL_SUPABASE'||!SUPABASE_KEY||SUPABASE_KEY==='VOTRE_CLE_ANON_ICI'){SB_ERROR='URL ou clé Supabase manquante';return false;}
@@ -370,75 +339,51 @@ function getJournee(matchId){
 async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   if(!pseudo||!pw)return{ok:false,msg:'Remplis tous les champs.'};
   if(!sb)return{ok:false,msg:'Supabase non configuré.'};
-  var k=pseudo.toLowerCase().trim();
+  var k=pseudo.toLowerCase().trim(),h=hsh(pw);
   var gid=groupId||GROUP_ID||null;
 
-  // Chercher si l'utilisateur existe déjà localement (déjà chargé)
+  // Chercher si l'utilisateur existe
   var existing=null;
   if(GROUP_ID){
     for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===k&&(k===ADMIN||u.group_id===GROUP_ID)){existing=u;break;}}
   } else {
     for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===k){existing=u;break;}}
+    if(!existing){
+      var fetchAny=await fetch(SUPABASE_URL+'/rest/v1/users?pseudo_key=eq.'+encodeURIComponent(k)+'&select=*&limit=1',
+        {headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}}).then(function(r){return r.json();});
+      if(fetchAny&&fetchAny.length)existing=fetchAny[0];
+    }
   }
 
   if(existing){
-    var r=await secureCall('login',{pseudo:k,password:pw});
-    if(!r.ok)return{ok:false,msg:r.msg||'Mot de passe incorrect.'};
-    SESSION_PW=pw;
-    DB.userMap[k]=r.user;
-    for(var ei=0;ei<DB.users.length;ei++)if(DB.users[ei].pseudo_key===k){DB.users[ei]=r.user;break;}
-    if(!DB.pronos[k])DB.pronos[k]={};
-    (r.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+    if(existing.hash!==h)return{ok:false,msg:'Mot de passe incorrect.'};
+    if(!DB.userMap[k]){DB.users.push(existing);DB.userMap[k]=existing;DB.pronos[k]={};}
     S.user=k;
     localStorage.setItem('ldc_ses',k);
-    localStorage.setItem('ldc_grp',r.user.group_id||'');
-    if(!GROUP_ID&&k!==ADMIN&&r.user.group_id){
-      window.location.replace(window.location.pathname+'?g='+r.user.group_id);
+    localStorage.setItem('ldc_grp',existing.group_id||'');
+    if(!GROUP_ID&&k!==ADMIN&&existing.group_id){
+      window.location.replace(window.location.pathname+'?g='+existing.group_id);
       return{ok:true};
     }
-    if(!GROUP_ID&&k!==ADMIN&&!r.user.group_id)
+    if(!GROUP_ID&&k!==ADMIN&&!existing.group_id)
       return{ok:false,msg:'Votre compte n\'est assigné à aucune équipe. Contactez l\'admin.'};
     return{ok:true};
-  }
-
-  // Pas trouvé localement : tenter quand même côté serveur (cas connexion
-  // depuis la racine du site, groupe pas encore connu côté client).
-  if(!GROUP_ID){
-    var r2=await secureCall('login',{pseudo:k,password:pw});
-    if(r2.ok){
-      SESSION_PW=pw;
-      DB.users.push(r2.user);DB.userMap[k]=r2.user;DB.pronos[k]={};
-      (r2.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
-      S.user=k;
-      localStorage.setItem('ldc_ses',k);
-      localStorage.setItem('ldc_grp',r2.user.group_id||'');
-      if(k!==ADMIN&&r2.user.group_id){
-        window.location.replace(window.location.pathname+'?g='+r2.user.group_id);
-        return{ok:true};
-      }
-      if(k!==ADMIN&&!r2.user.group_id)
-        return{ok:false,msg:'Votre compte n\'est assigné à aucune équipe. Contactez l\'admin.'};
-      return{ok:true};
-    }
-    if(r2.msg==='Mot de passe incorrect.')return{ok:false,msg:r2.msg};
   }
 
   // Nouveau compte : nécessite un groupe
   if(!gid&&k!==ADMIN)return{ok:false,msg:'Choisissez une équipe pour vous inscrire.'};
   var displayName=pseudoDisplay||pseudo.trim();
   var av=avatar||'⚽';
-  var h=hsh(pw);
-  var ins={pseudo_key:k,pseudo_display:displayName,hash:h,group_id:gid};
-  if(av)ins.avatar=av;
-  var insertRes=await fetch(SUPABASE_URL+'/rest/v1/users?select='+USERS_SAFE_COLS,{
+  var body={pseudo_key:k,pseudo_display:displayName,hash:h,group_id:gid};
+  if(av)body.avatar=av;
+  var insertRes=await fetch(SUPABASE_URL+'/rest/v1/users',{
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},
-    body:JSON.stringify(ins)
+    body:JSON.stringify(body)
   }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});
   if(!insertRes.ok)
     return{ok:false,msg:'Pseudo déjà pris dans cette équipe. Choisissez-en un autre.'};
   var nu=Array.isArray(insertRes.data)?insertRes.data[0]:insertRes.data;
-  SESSION_PW=pw;
   DB.users.push(nu);DB.userMap[k]=nu;DB.pronos[k]={};
   S.user=k;
   localStorage.setItem('ldc_ses',k);
@@ -449,59 +394,21 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   }
   return{ok:true};
 }
-function doLogout(){S.user=null;adminMode=false;SESSION_PW=null;SESSION_PIN=null;localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
-async function chgPw(o,n){
-  if(!S.user)return{ok:false,msg:'Non connecté'};
-  if(n.length<3)return{ok:false,msg:'Trop court'};
-  var r=await secureCall('changePassword',{pseudo:S.user,oldPassword:o,newPassword:n});
-  if(r.ok)SESSION_PW=n;
-  return r;
-}
-async function admReset(pseudo,np,pin){
-  var r=await secureCall('adminResetPassword',{pin:pin,pseudo:pseudo,newPassword:np});
-  return r;
-}
+function doLogout(){S.user=null;adminMode=false;localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
+async function chgPw(o,n){var uu=DB.userMap[S.user];if(!uu)return{ok:false,msg:'Introuvable'};if(uu.hash!==hsh(o))return{ok:false,msg:'Ancien mdp incorrect'};if(n.length<3)return{ok:false,msg:'Trop court'};await sb.from('users').update({hash:hsh(n)}).eq('id',uu.id);uu.hash=hsh(n);return{ok:true};}
+async function admReset(pseudo,np,pin){if(pin!==DB.config.pin)return{ok:false,msg:'PIN incorrect'};var k=pseudo.toLowerCase().trim(),uu=DB.userMap[k];if(!uu)return{ok:false,msg:'Joueur introuvable'};await sb.from('users').update({hash:hsh(np)}).eq('id',uu.id);uu.hash=hsh(np);return{ok:true};}
 
 /* ═══ PRONOS ════════════════════════════════════════════════════ */
+async function savePr(id,hv,av,wp){if(!S.user||!sb)return;var uid=DB.userMap[S.user].id;var data={user_id:uid,match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()};if(wp!==undefined)data.winner_prono=wp||null;await sb.from('pronos').upsert(data,{onConflict:'user_id,match_id'});if(!DB.pronos[S.user])DB.pronos[S.user]={};DB.pronos[S.user][id]={h:+hv,a:+av,wp:wp||null};}
 function uPronos(u){if(DB.pronos[u])return DB.pronos[u];var uu=DB.userMap[u];if(uu&&DB.pronos[uu.id])return DB.pronos[uu.id];return{};}
 function getRes(id){return DB.results[id]||null;}
-async function setRes(id,hv,av){
-  if(!sb||!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};
-  var r=await secureCall('adminSetResult',{pin:SESSION_PIN,matchId:id,home:hv,away:av});
-  if(r.ok){DB.results[id]={h:+hv,a:+av};await refreshMatches();}
-  return r;
-}
-async function delRes(id){
-  if(!sb||!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};
-  var r=await secureCall('adminDeleteResult',{pin:SESSION_PIN,matchId:id});
-  if(r.ok)delete DB.results[id];
-  return r;
-}
+async function setRes(id,hv,av){if(!sb)return;var w=null;if(hv!==''&&av!==''){if(+hv!==+av){var m2=null;for(var i=0;i<M.length;i++)if(M[i].id==id){m2=M[i];break;}if(m2)w=+hv>+av?'h':'a';}}await sb.from('results').upsert({match_id:+id,home_score:+hv,away_score:+av,updated_at:new Date().toISOString()});if(w!==null){await sb.from('matches').update({winner:w}).eq('id',+id);}DB.results[id]={h:+hv,a:+av};}
+async function delRes(id){if(!sb)return;await sb.from('results').delete().eq('match_id',+id);delete DB.results[id];}
 
 function getWinner(matchId){var r=DB.results[matchId];if(!r)return null;var m=null;for(var i=0;i<M.length;i++)if(M[i].id===matchId){m=M[i];break;}if(!m)return null;if(m.win)return m.win==='h'?m.h:m.a;if(r.h===r.a)return null;return r.h>r.a?m.h:m.a;}
-// La propagation des vainqueurs se fait toujours par lot complet côté
-// serveur (idempotent et sûr) — conservé comme alias pour compatibilité
-// des appels existants qui ciblaient un seul match.
-async function propagateMatch(matchId){return propagateAllWinners();}
-async function propagateAllWinners(){
-  if(!sb||!isAdmin()||!SESSION_PIN)return 0;
-  var r=await secureCall('adminPropagateAll',{pin:SESSION_PIN});
-  if(!r.ok)return 0;
-  if(r.count>0)await refreshMatches();
-  return r.count||0;
-}
-// Recharge la liste des matchs depuis la base (après une écriture admin
-// côté serveur, pour refléter les propagations de vainqueurs KO).
-async function refreshMatches(){
-  if(!sb)return;
-  var r=await sb.from('matches').select('*');
-  if(r.data&&r.data.length){
-    M=r.data.map(function(row){return{id:row.id,ph:row.phase,gr:row.grp,dt:row.dt,ti:row.ti,h:row.home,a:row.away,v:row.venue,oh:row.odds_h?+row.odds_h:null,oa:row.odds_a?+row.odds_a:null,od:row.odds_d?+row.odds_d:null,win:row.winner||null};});
-  }
-}
-// saveConfig ne sert plus qu'au cache local d'affichage éventuel — toute
-// écriture réelle de config (PIN...) passe par l'Edge Function.
-function saveConfig(key,val){DB.config[key]=val;}
+async function propagateMatch(matchId){if(!sb)return;var next=BRACKET_NEXT[matchId];if(!next)return;var winner=getWinner(matchId);if(!winner)return;var update={};update[next.side==='h'?'home':'away']=winner;await sb.from('matches').update(update).eq('id',next.next);for(var i=0;i<M.length;i++){if(M[i].id===next.next){if(next.side==='h')M[i].h=winner;else M[i].a=winner;break;}}}
+async function propagateAllWinners(){if(!sb||!isAdmin())return 0;var koIds=Object.keys(BRACKET_NEXT).map(Number),count=0;for(var i=0;i<koIds.length;i++){var winner=getWinner(koIds[i]);if(winner){await propagateMatch(koIds[i]);count++;}}return count;}
+async function saveConfig(key,val){if(!sb)return;await sb.from('config').upsert({key:key,value:val});DB.config[key]=val;}
 
 /* ═══ SCORING — Unifié côtes pour TOUS les matchs ═══════════════ */
 // Format harmonisé pour tout affichage de points/moyennes : entier sans
@@ -515,8 +422,6 @@ function fmtPts(n){
 }
 function getMatchOdds(id){for(var i=0;i<M.length;i++)if(M[i].id==id)return{oh:M[i].oh,oa:M[i].oa,od:M[i].od,ph:M[i].ph,win:M[i].win||null};return null;}
 
-// Le select de pronostic plafonne à "5+" (stocké comme 5) : un score
-// réel ≥5 doit être ramené à 5 pour qu'un "score exact" reste atteignable.
 function calcPts(pn,r,odds){
   if(!pn||!r)return 0;
   // Cas TAB : score nul réel + vainqueur désigné par l'admin (odds.win défini)
@@ -526,16 +431,11 @@ function calcPts(pn,r,odds){
     var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
     var ref=odds.od; // côte du nul = référence pour les TAB
-    var refWin=odds.win==='h'?odds.oh:odds.oa; // côte du vainqueur TAB
-    if(!ref)ref=refWin; // fallback si pas de côte nul
+    if(!ref)ref=odds.win==='h'?odds.oh:odds.oa; // fallback si pas de côte nul
     if(!ref)return 0;
-    // Bonus = côte du vainqueur TAB, ajoutée à la côte nul (uniquement si
-    // le vainqueur est aussi correctement deviné) — récompense la difficulté
-    // de deviner QUI gagne aux tirs au but, pas seulement le score nul.
-    var winBonus=(odds.od&&refWin)?refWin:0;
-    if(exactNul&&bonWinner)return Math.round((ref+winBonus)*10*100)/100; // (côte nul + côte vainqueur) × 10
-    if(pronoNul&&bonWinner)return Math.round((ref+winBonus)*5*100)/100;  // (côte nul + côte vainqueur) × 5
-    if(pronoNul)return Math.round(ref*2*100)/100;                        // prono nul seul (sans TAB correct)
+    if(exactNul&&bonWinner)return Math.round(ref*10*100)/100; // score exact nul + bon vainqueur TAB
+    if(pronoNul&&bonWinner)return Math.round(ref*5*100)/100;  // prono nul + bon vainqueur TAB
+    if(pronoNul)return Math.round(ref*2*100)/100;              // prono nul seul (sans TAB correct)
     return 0;
   }
   // Cas normal (victoire nette)
@@ -642,8 +542,8 @@ function ldcLigueStandings(){
 /* ═══ GROUPS ═════════════════════════════════════════════════════ */
 function randId(n){var c='abcdefghijklmnopqrstuvwxyz0123456789',r='';for(var i=0;i<n;i++)r+=c[Math.floor(Math.random()*c.length)];return r;}
 function groupUrl(gid){return window.location.origin+window.location.pathname+'?g='+gid;}
-async function createGroup(name){if(!sb||!name.trim())return{ok:false,msg:'Nom vide'};if(!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};var r=await secureCall('adminCreateGroup',{pin:SESSION_PIN,name:name.trim()});if(!r.ok)return{ok:false,msg:r.msg||'Erreur'};DB.groups.push(r.group);return{ok:true,group:r.group};}
-async function deleteGroup(gid){if(!sb)return{ok:false,msg:'Erreur'};if(!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};var r=await secureCall('adminDeleteGroup',{pin:SESSION_PIN,groupId:gid});if(r.ok)DB.groups=DB.groups.filter(function(g){return g.id!==gid;});return r;}
+async function createGroup(name){if(!sb||!name.trim())return{ok:false,msg:'Nom vide'};var gid=randId(6);var r=await fetch(SUPABASE_URL+'/rest/v1/groups',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},body:JSON.stringify({id:gid,name:name.trim()})}).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});if(!r.ok)return{ok:false,msg:r.data.message||'Erreur'};var nd=Array.isArray(r.data)?r.data[0]:r.data;DB.groups.push(nd);return{ok:true,group:nd};}
+async function deleteGroup(gid){if(!sb)return;await sb.from('users').update({group_id:null}).eq('group_id',gid);await sb.from('groups').delete().eq('id',gid);DB.groups=DB.groups.filter(function(g){return g.id!==gid;});}
 function currentGroupName(){if(!GROUP_ID)return null;for(var i=0;i<DB.groups.length;i++)if(DB.groups[i].id===GROUP_ID)return DB.groups[i].name;return null;}
 </script>
 
@@ -680,21 +580,35 @@ async function hCreateConfrontation(){
   if(!name){toast('Entrez un nom pour la confrontation','err');return;}
   var checked=document.querySelectorAll('.cf-grp-cb:checked');
   if(checked.length<2){toast('Sélectionnez au moins 2 groupes','err');return;}
-  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
-  var groupIds=[];checked.forEach(function(cb){groupIds.push(cb.value);});
-  var r=await secureCall('adminCreateConfrontation',{pin:SESSION_PIN,name:name,groupIds:groupIds});
-  if(!r.ok){toast(r.msg||'Erreur création confrontation','err');return;}
-  DB.confrontations.push(r.confrontation);
-  (r.links||[]).forEach(function(l){DB.confrontationGroups.push(l);});
+  // Insérer la confrontation
+  var cfResp=await fetch(SUPABASE_URL+'/rest/v1/confrontations',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=representation'},
+    body:JSON.stringify({name:name})
+  }).then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});});
+  if(!cfResp.ok){toast('Erreur création confrontation','err');return;}
+  var cf=Array.isArray(cfResp.data)?cfResp.data[0]:cfResp.data;
+  // Insérer les liaisons groupe
+  var links=[];
+  checked.forEach(function(cb){links.push({confrontation_id:cf.id,group_id:cb.value});});
+  var lResp=await fetch(SUPABASE_URL+'/rest/v1/confrontation_groups',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify(links)
+  });
+  if(!lResp.ok&&lResp.status!==201&&lResp.status!==204){toast('Erreur liaison groupes','err');return;}
+  DB.confrontations.push(cf);
+  links.forEach(function(l){DB.confrontationGroups.push(l);});
   toast('Confrontation "'+name+'" créée ✓');
   render();
 }
 
 async function hDeleteConfrontation(cfId){
   if(!confirm('Supprimer cette confrontation ?'))return;
-  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
-  var r=await secureCall('adminDeleteConfrontation',{pin:SESSION_PIN,confrontationId:cfId});
-  if(!r.ok){toast(r.msg||'Erreur','err');return;}
+  await fetch(SUPABASE_URL+'/rest/v1/confrontations?id=eq.'+cfId,{
+    method:'DELETE',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+  });
   DB.confrontations=DB.confrontations.filter(function(c){return c.id!==cfId;});
   DB.confrontationGroups=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id!==cfId;});
   toast('Confrontation supprimée');render();
@@ -959,33 +873,6 @@ function pgMatchs(){
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
-// Génère un stepper +/- pour la saisie de score pronostic (0, 1, 2...
-// sans plafond). La valeur réelle est gardée dans un <input type=hidden>,
-// l'affichage montre "?" tant qu'aucune valeur n'a été choisie.
-function pronoStepperHTML(id,val,locked){
-  var display=(val===''||val===null||val===undefined)?'?':val;
-  var disAttr=locked?' disabled':'';
-  return '<span class="pi-stepper">'
-    +'<button type="button" class="pi-btn pi-minus"'+disAttr+' onclick="hPronoStep(\''+id+'\',-1)">−</button>'
-    +'<span class="pi-val" id="'+id+'-disp">'+display+'</span>'
-    +'<input type="hidden" id="'+id+'" value="'+val+'"'+disAttr+'>'
-    +'<button type="button" class="pi-btn pi-plus"'+disAttr+' onclick="hPronoStep(\''+id+'\',1)">+</button>'
-    +'</span>';
-}
-function hPronoStep(id,delta){
-  var hidden=document.getElementById(id);
-  if(!hidden||hidden.disabled)return;
-  var cur=hidden.value;
-  var n=(cur==='')?-1:+cur; // "?" + un "+" doit amener à 0
-  n+=delta;
-  if(n<0)hidden.value='';
-  else{if(n>20)n=20;hidden.value=String(n);}
-  var disp=document.getElementById(id+'-disp');
-  if(disp)disp.textContent=(hidden.value==='')?'?':hidden.value;
-  updatePronoCount();
-  var mid=id.replace(/^p[ha]/,'');
-  hPronoChange(+mid);
-}
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(m.dt+'T'+m.ti+':00+01:00'),started=(new Date())>=dt;
@@ -995,20 +882,10 @@ function cardMatch(m){
 
   var oddsBlock='';
   if(m.oh&&m.oa){
-    var winSide=null;
-    if(res){
-      if(m.win)winSide=m.win;
-      else if(res.h!==res.a)winSide=res.h>res.a?'h':'a';
-      else winSide='d';
-    }
-    var oddPill=function(side,txt,baseStyle){
-      var ring=(winSide===side)?';border:2px solid var(--grn);border-radius:10px;padding:1px 7px':'';
-      return '<span style="'+baseStyle+ring+'">'+txt+'</span>';
-    };
     oddsBlock='<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 6px;padding:4px 8px;background:rgba(26,86,219,.08);border-radius:6px;font-size:.72rem">'
-      +oddPill('h',m.oh.toFixed(2),'color:var(--gold);font-weight:700')
-      +(m.od?oddPill('d','nul '+m.od.toFixed(2),'color:var(--muted)'):'')
-      +oddPill('a',m.oa.toFixed(2),'color:var(--gold);font-weight:700')
+      +'<span style="color:var(--gold);font-weight:700">'+m.oh.toFixed(2)+'</span>'
+      +(m.od?'<span style="color:var(--muted)">nul '+m.od.toFixed(2)+'</span>':'')
+      +'<span style="color:var(--gold);font-weight:700">'+m.oa.toFixed(2)+'</span>'
       +'</div>';
   }
 
@@ -1024,8 +901,7 @@ function cardMatch(m){
       else if(ptb.type==='ok')badgeH='<span class="badge ok">&#10003; +'+ptb.pts+'pts</span>';
       else badgeH='<span class="badge no">&#10007; 0pt</span>';
     }
-    var vh=pn?pn.h:'',va=pn?pn.a:'';
-    pronoBlock='<div class="pr">'+pronoStepperHTML('ph'+m.id,vh,dis!=='')+'<span style="color:var(--muted)">-</span>'+pronoStepperHTML('pa'+m.id,va,dis!=='')+badgeH+'</div>';
+    pronoBlock='<div class="pr"><input class="pi" type="number" min="0" max="20" id="ph'+m.id+'" value="'+(pn?pn.h:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')"><span style="color:var(--muted)">-</span><input class="pi" type="number" min="0" max="20" id="pa'+m.id+'" value="'+(pn?pn.a:'')+'" placeholder="?"'+dis+' onchange="hPronoChange('+m.id+')">'+badgeH+'</div>';
     // Menu TAB joueur : KO uniquement (barrages, 8es, quarts, demis, finale)
     // En phase de ligue, un nul reste un nul — pas de prolongations ni TAB
     if(!started&&m.ph!=='LIGUE'){
@@ -1088,34 +964,17 @@ function cardMatch(m){
 function pgClass(){
   if(!sb)return pgSetup();
   var board=lb();
-  if(!S.classTab)S.classTab='general'; // onglet actif : 'general' ou 'confrontations'
-  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p>';
-  var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
-    +'<button class="tb'+(S.classTab==='general'?' on':'')+'" onclick="S.classTab=\'general\';render()">🏆 Général</button>'
-    +'<button class="tb'+(S.classTab==='confrontations'?' on':'')+'" onclick="S.classTab=\'confrontations\';render()">⚔️ Confrontations</button>'
-    +'</div>';
-
-  if(S.classTab==='confrontations'){
-    // Confrontations (équipes / individuel), fusionnées ici depuis l'ancien
-    // onglet "Équipes" séparé — évite la confusion avec les équipes du
-    // tournoi (le contenu de pgConfrontations() est inchangé, juste imbriqué).
-    return h+tabsH+pgConfrontations();
+  var h='<div class="pt">&#127942; CLASSEMENT <button onclick="showRules()" style="background:var(--gold);border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-size:.75rem;color:#fff;vertical-align:middle;margin-left:10px;font-weight:700;letter-spacing:.3px">📋 Règles de calcul des points</button></div><p class="psub">Classement du groupe &middot; Cliquez sur le bouton pour les règles de points</p><div class="card" style="padding:0;margin-top:20px">';
+  if(!board.length)return h+'<div class="empty">Aucun participant pour le moment.</div></div>';
+  var rows='';
+  for(var i=0;i<board.length;i++){
+    var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
+    var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
+    rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
+     +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
+     +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
   }
-
-  var body='<div class="card" style="padding:0;margin-top:0">';
-  if(!board.length){body+='<div class="empty">Aucun participant pour le moment.</div></div>';}
-  else{
-    var rows='';
-    for(var i=0;i<board.length;i++){
-      var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
-      var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
-      rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-       +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
-       +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
-    }
-    body+='<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-  }
-  return h+tabsH+body;
+  return h+'<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 
 function pgLigue(){
@@ -1651,7 +1510,7 @@ function pgConfrontations(){
         var gidsToLoad=Object.keys(allGids).filter(function(gid){return !knownGids[gid];});
         var extraUsers=[];
         for(var gi=0;gi<gidsToLoad.length;gi++){
-          var rU2=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',gidsToLoad[gi]);
+          var rU2=await sb.from('users').select('*').eq('group_id',gidsToLoad[gi]);
           if(rU2.data)extraUsers=extraUsers.concat(rU2.data);
         }
         // Charger leurs pronos
@@ -1819,7 +1678,7 @@ function render(){
     if(GROUP_ID&&!S.user){document.getElementById('main').innerHTML=pgGroupLogin();return;}
     if(S.page==='matchs'&&S._prevPage!=='matchs'){var activeTab=getActivePhase();if(activeTab&&activeTab!==S.tab){S.tab=activeTab;S.jour='ALL';S.qf='all';}}
     S._prevPage=S.page;
-    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,stats:pgStats};
+    var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,confrontations:pgConfrontations,stats:pgStats};
     var fn=pages[S.page]||pgAccueil;
     document.getElementById('main').innerHTML=fn();
     if(S.page==='matchs')setTimeout(scrollToFirstUnscored,80);
@@ -1834,9 +1693,10 @@ function renderNav(){
   var items=S.user?[
     {p:'accueil',ic:'🏠',lb:'Accueil',ti:'🏠'},
     {p:'matchs',ic:'📅',lb:'Matchs',ti:'📅'},
+    {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
     {p:'ligue',ic:'⚽',lb:'Phase Ligue',ti:'⚽'},
     {p:'tableau',ic:'🏟',lb:'Tableau KO',ti:'🏟'},
-    {p:'classement',ic:'🏆',lb:'Classement',ti:'🏆'},
+    {p:'confrontations',ic:'⚔️',lb:'Équipes',ti:'⚔️'},
     {p:'profil',ic:'👤',lb:(S.user!==ADMIN)?psd(S.user):'Profil',ti:'👤'}
   ]:[{p:'accueil',ic:'🏠',lb:'Connexion',ti:'🏠'}];
   if(isAdmin())items.splice(5,0,{p:'stats',ic:'📊',lb:'Stats',ti:'📊'});
@@ -1909,11 +1769,8 @@ async function hChangeAvatar(){
   if(!av){if(e)e.textContent='Choisissez un avatar.';return;}
   var uu=DB.userMap[S.user];
   if(!uu){if(e)e.textContent='Utilisateur introuvable.';return;}
-  var pw=SESSION_PW;
-  if(!pw){pw=prompt('Confirmez votre mot de passe pour changer d\'avatar :');if(!pw)return;}
-  var r=await secureCall('changeAvatar',{pseudo:S.user,password:pw,avatar:av});
-  if(!r.ok){if(e)e.textContent=r.msg||'Erreur';return;}
-  SESSION_PW=pw;
+  var r=await sb.from('users').update({avatar:av}).eq('id',uu.id);
+  if(r&&r.error){if(e)e.textContent='Erreur: '+r.error.message;return;}
   uu.avatar=av;
   S.avEdit=false;
   toast('Avatar mis à jour ✓');
@@ -2007,20 +1864,23 @@ async function hLogin(){
     render();
   }else{var e=document.getElementById('lerr');if(e)e.textContent=r.msg;}
 }
-async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}var r=await setRes(id,hv,av);if(!r.ok){toast(r.msg||'Erreur','err');return;}toast('Score enregistré ✓');render();}
-async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var r=await delRes(id);if(!r.ok){toast(r.msg||'Erreur','err');return;}toast('Score supprimé');render();}
-async function hSetWinner(id,val){if(!isAdmin()||!sb)return;if(!SESSION_PIN){toast('Mode admin non activé','err');return;}var w=val||null;var r=await secureCall('adminSetWinner',{pin:SESSION_PIN,matchId:id,winner:w});if(!r.ok){toast(r.msg||'Erreur','err');return;}for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].win=w;break;}if(r.propagated>0)await refreshMatches();toast(w?'Vainqueur TAB : '+(w==='h'?M.find(function(m){return m.id===+id;}).h:M.find(function(m){return m.id===+id;}).a)+' ✓':'TAB effacé');render();}
+async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var hv=gv('rh'+id),av=gv('ra'+id);if(hv===''||av===''){toast('Score incomplet !','err');return;}await setRes(id,hv,av);if(BRACKET_NEXT[+id])await propagateMatch(+id);toast('Score enregistré ✓');render();}
+async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}await delRes(id);toast('Score supprimé');render();}
+async function hSetWinner(id,val){if(!isAdmin()||!sb)return;var w=val||null;await sb.from('matches').update({winner:w}).eq('id',+id);for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].win=w;break;}if(w&&BRACKET_NEXT[+id])await propagateMatch(+id);toast(w?'Vainqueur TAB : '+(w==='h'?M.find(function(m){return m.id===+id;}).h:M.find(function(m){return m.id===+id;}).a)+' ✓':'TAB effacé');render();}
 async function hPropagateAll(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('prope');if(e)e.textContent='Propagation en cours...';var count=await propagateAllWinners();render();var msg=count>0?count+' match(s) propagé(s) ✓':'Aucun résultat KO à propager';toast(msg);if(e)e.textContent=msg;}
 async function hCpw(){var o=gv('opw'),n=gv('npw'),r=await chgPw(o,n);if(r.ok){toast('Mot de passe modifié ✓');S.cpw=false;render();}else{var e=document.getElementById('cpwe');if(e)e.textContent=r.msg;}}
 async function hAdmReset(){var p=gv('ap'),n=gv('anp'),pin=gv('apin'),r=await admReset(p,n,pin),e=document.getElementById('ae');if(e){e.textContent=r.ok?'Réinitialisé !':r.msg;e.style.color=r.ok?'var(--grn)':'var(--red)';}if(r.ok)toast('Mot de passe réinitialisé ✓');}
-async function hDelUser(){if(!isAdmin()){toast('Accès refusé','err');return;}var pseudo=gv('dup').trim().toLowerCase(),pin=gv('dpin'),e=document.getElementById('de');if(!pseudo){if(e){e.textContent='Entre un pseudo.';e.style.color='var(--red)';}return;}if(pseudo===ADMIN){if(e){e.textContent='Impossible.';e.style.color='var(--red)';}return;}var r=await secureCall('adminDeleteUser',{pin:pin,pseudo:pseudo});if(!r.ok){if(e){e.textContent=r.msg||'Erreur';e.style.color='var(--red)';}return;}var uu=DB.userMap[pseudo];if(uu)DB.users=DB.users.filter(function(u){return u.id!==uu.id;});delete DB.userMap[pseudo];delete DB.pronos[pseudo];toast('Compte supprimé');render();}
+async function hDelUser(){if(!isAdmin()){toast('Accès refusé','err');return;}var pseudo=gv('dup').trim().toLowerCase(),pin=gv('dpin'),e=document.getElementById('de');if(!pseudo){if(e){e.textContent='Entre un pseudo.';e.style.color='var(--red)';}return;}if(pin!==DB.config.pin){if(e){e.textContent='PIN incorrect.';e.style.color='var(--red)';}return;}if(pseudo===ADMIN){if(e){e.textContent='Impossible.';e.style.color='var(--red)';}return;}var uu=DB.userMap[pseudo];if(!uu){if(e){e.textContent='Introuvable.';e.style.color='var(--red)';}return;}await sb.from('users').delete().eq('id',uu.id);DB.users=DB.users.filter(function(u){return u.id!==uu.id;});delete DB.userMap[pseudo];delete DB.pronos[pseudo];toast('Compte supprimé');render();}
 
 async function hChangeUserGroup(userId, newGroupId){
   if(!isAdmin()||!sb)return;
-  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
   var gid=newGroupId||null;
-  var r=await secureCall('adminChangeUserGroup',{pin:SESSION_PIN,userId:userId,groupId:gid});
-  if(r.ok){
+  var resp=await fetch(SUPABASE_URL+'/rest/v1/users?id=eq.'+userId,{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify({group_id:gid})
+  });
+  if(resp.ok||resp.status===204){
     // Mettre à jour DB local immédiatement
     for(var i=0;i<DB.users.length;i++){
       if(DB.users[i].id===userId){
@@ -2031,27 +1891,28 @@ async function hChangeUserGroup(userId, newGroupId){
     var gname=gid?(function(){for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid)return DB.groups[j].name;return gid;})():'aucune';
     toast('Équipe modifiée → '+gname+' ✓');
   }else{
-    toast(r.msg||'Erreur changement équipe','err');
+    toast('Erreur changement équipe','err');
   }
 }
-async function hChgPin(){var o=gv('opin'),n=gv('npin'),e=document.getElementById('pe');var r=await secureCall('adminChangePin',{oldPin:o,newPin:n});if(!r.ok){if(e){e.textContent=r.msg||'Erreur';e.style.color='var(--red)';}return;}SESSION_PIN=n;if(e){e.textContent='PIN modifié ✓';e.style.color='var(--grn)';}}
+async function hChgPin(){var o=gv('opin'),n=gv('npin'),e=document.getElementById('pe');if(o!==DB.config.pin){if(e){e.textContent='PIN actuel incorrect.';e.style.color='var(--red)';}return;}if(!n||n.length<3){if(e){e.textContent='PIN trop court.';e.style.color='var(--red)';}return;}await saveConfig('pin',n);if(e){e.textContent='PIN modifié ✓';e.style.color='var(--grn)';}}
 async function hCreateGroup(){var name=gv('new-grp').trim(),e=document.getElementById('grpe');if(!name){if(e){e.textContent='Entrez un nom.';e.style.color='var(--red)';}return;}var r=await createGroup(name);if(r.ok){toast('Groupe "'+r.group.name+'" créé ✓');var inp=document.getElementById('new-grp');if(inp)inp.value='';render();}else{if(e){e.textContent=r.msg;e.style.color='var(--red)';}}}
-async function hDelGroup(gid){if(!confirm('Supprimer ce groupe ?'))return;var r=await deleteGroup(gid);if(!r.ok){toast(r.msg||'Erreur','err');return;}toast('Groupe supprimé');render();}
+async function hDelGroup(gid){if(!confirm('Supprimer ce groupe ?'))return;await deleteGroup(gid);toast('Groupe supprimé');render();}
 function hCopyUrl(url){navigator.clipboard.writeText(url).then(function(){toast('URL copiée ✓');}).catch(function(){prompt('Copiez :',url);});}
-async function hRenameGroupPrompt(gid,currentName){var newName=prompt('Nouveau nom du groupe :',currentName);if(!newName||!newName.trim()||newName.trim()===currentName)return;newName=newName.trim();if(!SESSION_PIN){toast('Mode admin non activé','err');return;}var r=await secureCall('adminRenameGroup',{pin:SESSION_PIN,groupId:gid,newName:newName});if(r.ok){for(var i=0;i<DB.groups.length;i++)if(DB.groups[i].id===gid){DB.groups[i].name=newName;break;}toast('Groupe renommé "'+newName+'" ✓');render();}else toast(r.msg||'Erreur renommage','err');}
+async function hRenameGroupPrompt(gid,currentName){var newName=prompt('Nouveau nom du groupe :',currentName);if(!newName||!newName.trim()||newName.trim()===currentName)return;newName=newName.trim();var resp=await fetch(SUPABASE_URL+'/rest/v1/groups?id=eq.'+gid,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},body:JSON.stringify({name:newName})});if(resp.ok||resp.status===204){for(var i=0;i<DB.groups.length;i++)if(DB.groups[i].id===gid){DB.groups[i].name=newName;break;}toast('Groupe renommé "'+newName+'" ✓');render();}else toast('Erreur renommage','err');}
 
 async function hSaveTeams(){
   var inputs=document.querySelectorAll('.team-inp');
   var updates=[];
-  inputs.forEach(function(inp){var mid=+inp.getAttribute('data-mid');var side=inp.getAttribute('data-side');var val=inp.value.trim();if(val)updates.push({matchId:mid,side:side,value:val});});
+  inputs.forEach(function(inp){var mid=+inp.getAttribute('data-mid');var side=inp.getAttribute('data-side');var val=inp.value.trim();if(val)updates.push({mid:mid,side:side,val:val});});
   if(!updates.length){toast('Aucune modification','info');return;}
+  var errors=0,done=0;
+  for(var i=0;i<updates.length;i++){
+    var u=updates[i];var field=u.side==='h'?'home':'away';var body={};body[field]=u.val;
+    try{var resp=await fetch(SUPABASE_URL+'/rest/v1/matches?id=eq.'+u.mid,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},body:JSON.stringify(body)});if(resp.ok||resp.status===204){for(var j=0;j<M.length;j++){if(M[j].id===u.mid){if(u.side==='h')M[j].h=u.val;else M[j].a=u.val;break;}}done++;}else errors++;}catch(e){errors++;}
+  }
   var e2=document.getElementById('te');
-  if(!SESSION_PIN){if(e2){e2.textContent='Mode admin non activé';e2.style.color='var(--red)';}toast('Mode admin non activé','err');return;}
-  var r=await secureCall('adminSetTeams',{pin:SESSION_PIN,updates:updates});
-  if(!r.ok){if(e2){e2.textContent=r.msg||'Erreur';e2.style.color='var(--red)';}toast(r.msg||'Erreur','err');return;}
-  updates.forEach(function(u){for(var j=0;j<M.length;j++){if(M[j].id===u.matchId){if(u.side==='h')M[j].h=u.value;else M[j].a=u.value;break;}}});
-  if(r.errors===0){if(e2){e2.textContent=r.done+' nom(s) mis à jour ✓';e2.style.color='var(--grn)';}toast(r.done+' nom(s) d\'équipe mis à jour ✓');}
-  else{if(e2){e2.textContent=r.errors+' erreur(s)';e2.style.color='var(--red)';}toast(r.errors+' erreur(s)','err');}
+  if(errors===0){if(e2){e2.textContent=done+' nom(s) mis à jour ✓';e2.style.color='var(--grn)';}toast(done+' nom(s) d\'équipe mis à jour ✓');}
+  else{if(e2){e2.textContent=errors+' erreur(s)';e2.style.color='var(--red)';}toast(errors+' erreur(s)','err');}
   render();
 }
 
@@ -2059,17 +1920,18 @@ async function hSaveTeamInline(inp){
   var mid=+inp.getAttribute('data-mid'),side=inp.getAttribute('data-side'),newVal=inp.value.trim();
   if(!newVal)return;
   var oldVal='';for(var j=0;j<M.length;j++)if(M[j].id===mid){oldVal=side==='h'?M[j].h:M[j].a;break;}
-  if(!SESSION_PIN){inp.style.borderColor='var(--red)';toast('Mode admin non activé','err');return;}
   inp.style.borderColor='var(--gold)';
-  var r=await secureCall('adminRenameTeamEverywhere',{pin:SESSION_PIN,oldName:oldVal,newName:newVal});
-  if(r.ok){
-    M.forEach(function(m){if(m.h===oldVal)m.h=newVal;if(m.a===oldVal)m.a=newVal;});
-    inp.style.borderColor='var(--grn)';toast((r.updated||0)+' match(s) mis à jour ✓');setTimeout(function(){render();},500);
-  }else{inp.style.borderColor='var(--red)';toast(r.msg||'Erreur','err');}
+  var toUpdateHome=M.filter(function(m){return m.h===oldVal;});
+  var toUpdateAway=M.filter(function(m){return m.a===oldVal;});
+  var updated=0,errors=0;
+  for(var i=0;i<toUpdateHome.length;i++){var r=await fetch(SUPABASE_URL+'/rest/v1/matches?id=eq.'+toUpdateHome[i].id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},body:JSON.stringify({home:newVal})});if(r.ok||r.status===204){toUpdateHome[i].h=newVal;updated++;}else errors++;}
+  for(var i=0;i<toUpdateAway.length;i++){var r2=await fetch(SUPABASE_URL+'/rest/v1/matches?id=eq.'+toUpdateAway[i].id,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},body:JSON.stringify({away:newVal})});if(r2.ok||r2.status===204){toUpdateAway[i].a=newVal;updated++;}else errors++;}
+  if(errors===0){inp.style.borderColor='var(--grn)';toast(updated+' match(s) mis à jour ✓');setTimeout(function(){render();},500);}
+  else{inp.style.borderColor='var(--red)';toast(errors+' erreur(s)','err');}
 }
 
 function updateAdminBanner(){var ban=document.getElementById('adm-ban');if(!ban)return;if(adminMode&&isAdmin()){ban.classList.add('on');document.documentElement.style.setProperty('--ban','32px');}else{ban.classList.remove('on');document.documentElement.style.setProperty('--ban','0px');}}
-async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('ame');if(adminMode){adminMode=false;SESSION_PIN=null;updateAdminBanner();toast('Mode admin désactivé');render();return;}var pin=gv('apm');var r=await secureCall('adminVerifyPin',{pin:pin});if(!r.ok){if(e)e.textContent='PIN incorrect.';return;}SESSION_PIN=pin;adminMode=true;updateAdminBanner();toast('Mode admin activé');render();}
+async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}var pin=gv('apm'),e=document.getElementById('ame');if(pin!==DB.config.pin){if(e)e.textContent='PIN incorrect.';return;}adminMode=!adminMode;updateAdminBanner();toast(adminMode?'Mode admin activé':'Mode admin désactivé');render();}
 
 function countdown(dt,ti){var kickoff=new Date(dt+'T'+ti+':00+01:00'),diff=kickoff-new Date();if(diff<=0)return '';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
 function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date()<new Date(m.dt+'T'+m.ti)&&!pr[m.id])n++;}return n;}
@@ -2171,8 +2033,11 @@ function logoClick(){
 
 async function doEmergency(){
   var sec=gv('em-secret'),np=gv('em-np'),npin=gv('em-npin'),emsg=document.getElementById('em-msg');
-  var r=await secureCall('emergencyReset',{secretCode:sec,newPassword:np,newPin:npin});
-  if(!r.ok){if(emsg){emsg.textContent=r.msg||'Code secret incorrect.';emsg.style.color='var(--red)';}return;}
+  var rEmg=await sb.from('config').select('value').eq('key','emergency_code').single();
+  var storedCode=rEmg&&rEmg.data?rEmg.data.value:'';
+  if(!storedCode||sec!==storedCode){if(emsg){emsg.textContent='Code secret incorrect.';emsg.style.color='var(--red)';}return;}
+  if(np.length>=3){var uu=DB.userMap[ADMIN];if(!uu){var r=await sb.from('users').insert({pseudo_key:ADMIN,pseudo_display:'adminldc',hash:hsh(np)}).single();if(!r.error){DB.users.push(r.data);DB.userMap[ADMIN]=r.data;}}else{await sb.from('users').update({hash:hsh(np)}).eq('id',uu.id);uu.hash=hsh(np);}}
+  if(npin.length>=3)await saveConfig('pin',npin);
   if(emsg){emsg.textContent='Réinitialisation effectuée !';emsg.style.color='var(--grn)';}
   setTimeout(function(){document.getElementById('emergency-modal').style.display='none';},2000);
 }
@@ -2185,12 +2050,13 @@ async function loadAll(){
     var isAdminSession=(loggedSes===ADMIN);
     var rU,rUg=null,rUses=null;
     if(GROUP_ID&&!isAdminSession){
-      rU=await sb.from('users').select(USERS_SAFE_COLS).eq('pseudo_key',ADMIN);
-      rUg=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',GROUP_ID);
-      if(loggedSes&&loggedSes!==ADMIN)rUses=await sb.from('users').select(USERS_SAFE_COLS).eq('pseudo_key',loggedSes).eq('group_id',GROUP_ID);
-    }else{rU=await sb.from('users').select(USERS_SAFE_COLS);}
+      rU=await sb.from('users').select('*').eq('pseudo_key',ADMIN);
+      rUg=await sb.from('users').select('*').eq('group_id',GROUP_ID);
+      if(loggedSes&&loggedSes!==ADMIN)rUses=await sb.from('users').select('*').eq('pseudo_key',loggedSes).eq('group_id',GROUP_ID);
+    }else{rU=await sb.from('users').select('*');}
     var rP=await sb.from('pronos').select('*');
     var rR=await sb.from('results').select('*');
+    var rC=await sb.from('config').select('*');
     var rG=await sb.from('groups').select('*').order('created_at');
     var rCF=await sb.from('confrontations').select('*').order('created_at');
     var rCFG=await sb.from('confrontation_groups').select('*');
@@ -2198,7 +2064,7 @@ async function loadAll(){
     var seenIds={};users.forEach(function(u){seenIds[u.id]=true;});
     if(rUg&&rUg.data)rUg.data.forEach(function(u){if(!seenIds[u.id]){users.push(u);seenIds[u.id]=true;}});
     if(rUses&&rUses.data)rUses.data.forEach(function(u){if(!seenIds[u.id]&&(!GROUP_ID||u.group_id===GROUP_ID)){users.push(u);seenIds[u.id]=true;}});
-    var pronos=rP.data||[];var results=rR.data||[];
+    var pronos=rP.data||[];var results=rR.data||[];var config=rC.data||[];
     DB.groups=rG.data||[];
     DB.confrontations=rCF.data||[];
     DB.confrontationGroups=rCFG.data||[];
@@ -2210,8 +2076,7 @@ async function loadAll(){
     var knownIds={};for(var j=0;j<users.length;j++)knownIds[users[j].id]=users[j];
     for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.id])DB.pronos[owner.id]={};DB.pronos[owner.id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};if(!DB.pronos[owner.pseudo_key]||DB.userMap[owner.pseudo_key]&&DB.userMap[owner.pseudo_key].id===owner.id)DB.pronos[owner.pseudo_key]=DB.pronos[owner.id];}}
     DB.results={};for(var i=0;i<results.length;i++)DB.results[results[i].match_id]={h:results[i].home_score,a:results[i].away_score};
-    // NB : le PIN admin et le code de secours ne sont plus jamais lus
-    // côté client (table config verrouillée par RLS) — voir secure-actions.
+    for(var i=0;i<config.length;i++)DB.config[config[i].key]=config[i].value;
     var rM=await sb.from('matches').select('*').order('id');
     if(rM.data&&rM.data.length>0){M=rM.data.map(function(r){return{id:r.id,ph:r.phase,gr:r.grp,dt:r.dt,ti:r.ti,h:r.home,a:r.away,v:r.venue,oh:r.odds_h?+r.odds_h:null,oa:r.odds_a?+r.odds_a:null,od:r.odds_d?+r.odds_d:null,win:r.winner||null};});}
   }catch(e){toast('Erreur chargement: '+e.message,'err');}
@@ -2320,7 +2185,7 @@ function setupRealtime(){
       .on('postgres_changes',{event:'*',schema:'public',table:'users'},function(){
         setTimeout(async function(){
           // Recharger les users visibles (propre groupe + admin)
-          var rU2=await sb.from('users').select(USERS_SAFE_COLS);
+          var rU2=await sb.from('users').select('*');
           if(rU2.data){
             DB.users=[];DB.userMap={};
             rU2.data.forEach(function(u){DB.users.push(u);DB.userMap[u.pseudo_key]=u;});
@@ -2366,7 +2231,7 @@ async function init(){
   // propager silencieusement les qualifiés manquants au démarrage
   if(isAdmin())setTimeout(async function(){var n=await propagateAllWinners();if(n>0)toast(n+' qualifié(s) propagé(s) automatiquement ✓');},1000);
   var _pg=localStorage.getItem('ldc_pg'),_tb=localStorage.getItem('ldc_tab');
-  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
+  if(_pg&&['accueil','matchs','classement','ligue','tableau','profil','confrontations','stats'].indexOf(_pg)!==-1){if(_pg==='stats'&&!isAdmin())_pg='accueil';S.page=_pg;}
   if(_tb)S.tab=_tb;
   render();
 }
@@ -2415,11 +2280,11 @@ init();
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bdr)">
             <span style="color:var(--txt)">Score nul + bon vainqueur TAB</span>
-            <span style="color:var(--muted);font-weight:600">(côte nul + côte vainqueur) × 5</span>
+            <span style="color:var(--muted);font-weight:600">côte nul × 5</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
             <span style="color:var(--gold);font-weight:700">🎯 Score exact nul + bon vainqueur TAB</span>
-            <span style="color:var(--gold);font-weight:700">(côte nul + côte vainqueur) × 10</span>
+            <span style="color:var(--gold);font-weight:700">côte nul × 10</span>
           </div>
         </div>
         <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5">
