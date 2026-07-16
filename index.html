@@ -306,7 +306,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.1';
+var VERSION = '2.0.2';
 var BUILD   = '15/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -542,6 +542,21 @@ function saveConfig(key,val){DB.config[key]=val;}
 // décimale, sinon 2 décimales max (arrondi). Utilisé partout (classement
 // général, confrontations équipes/individuel, stats admin) pour éviter les
 // incohérences (ex: 1 décimale ici, 2 ailleurs, toujours 2 même si rond...).
+// Calcule le timestamp du coup d'envoi d'un match en heure de Paris, en
+// tenant compte automatiquement du changement heure d'été (CEST +02:00)
+// / heure d'hiver (CET +01:00) — indépendamment du fuseau horaire du
+// navigateur qui consulte le site. Remplace tous les anciens `new
+// Date(dt+'T'+ti+':00+01:00')` qui étaient faux une bonne partie de
+// l'année (été = +02:00), et les `new Date(dt+'T'+ti)` qui dépendaient
+// du fuseau local du visiteur.
+function matchKickoff(dt,ti){
+  if(!dt||!ti)return NaN;
+  var probe=new Date(dt+'T12:00:00Z'); // midi UTC ce jour-là, sans ambiguïté DST
+  var parisHour=+probe.toLocaleString('en-US',{timeZone:'Europe/Paris',hour12:false,hour:'2-digit'});
+  var offsetH=parisHour-12; // 2 = CEST, 1 = CET
+  var offsetStr=(offsetH>=0?'+':'-')+String(Math.abs(offsetH)).padStart(2,'0')+':00';
+  return new Date(dt+'T'+ti+':00'+offsetStr).getTime();
+}
 function fmtPts(n){
   if(n==null||isNaN(n))return '—';
   var r=Math.round(n*100)/100;
@@ -845,10 +860,10 @@ function pgAccueil(){
   var userP=0,prog=0;
   if(S.user&&S.user!==ADMIN){var st0=pts(S.user);userP=st0.p;prog=played>0?Math.round(st0.pl/Math.max(played,1)*100):0;}
   var now=new Date(),nextM=null;
-  for(var ni=0;ni<M.length;ni++){var km=new Date(M[ni].dt+'T'+M[ni].ti+':00+01:00');if(km>now&&(!nextM||km<new Date(nextM.dt+'T'+nextM.ti+':00+01:00')))nextM=M[ni];}
+  for(var ni=0;ni<M.length;ni++){var km=new Date(matchKickoff(M[ni].dt,M[ni].ti));if(km>now&&(!nextM||km<new Date(matchKickoff(nextM.dt,nextM.ti))))nextM=M[ni];}
   var nextBlock='';
   if(nextM){
-    var diff=new Date(nextM.dt+'T'+nextM.ti+':00+01:00')-now;
+    var diff=matchKickoff(nextM.dt,nextM.ti)-now;
     var dh=Math.floor(diff/3600000),dm=Math.floor((diff%3600000)/60000);
     var dLabel=dh>24?Math.floor(dh/24)+'j '+(dh%24)+'h':dh+'h'+dm+'min';
     nextBlock='<div style="margin-top:14px;background:rgba(26,86,219,.08);border:1px solid rgba(26,86,219,.2);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
@@ -931,9 +946,9 @@ function pgMatchs(){
     var pr2=uPronos(S.user);
     var now2=new Date();var todayStr=now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0')+'-'+String(now2.getDate()).padStart(2,'0');
     var pc=0,todayCount=0;
-    for(var fi=0;fi<filtered.length;fi++){var fm=filtered[fi];var fOpen=new Date()<new Date(fm.dt+'T'+fm.ti);if(fOpen&&!pr2[fm.id])pc++;if(fm.dt===todayStr)todayCount++;}
+    for(var fi=0;fi<filtered.length;fi++){var fm=filtered[fi];var fOpen=new Date().getTime()<matchKickoff(fm.dt,fm.ti);if(fOpen&&!pr2[fm.id])pc++;if(fm.dt===todayStr)todayCount++;}
     if(S.qf!=='all'){
-      filtered=filtered.filter(function(m){var hasPr=!!pr2[m.id];var isOpen=new Date()<new Date(m.dt+'T'+m.ti);if(S.qf==='today')return m.dt===todayStr;if(S.qf==='pending')return !DB.results[m.id];if(S.qf==='open')return isOpen&&!hasPr;if(S.qf==='done')return hasPr;return true;});
+      filtered=filtered.filter(function(m){var hasPr=!!pr2[m.id];var isOpen=new Date().getTime()<matchKickoff(m.dt,m.ti);if(S.qf==='today')return m.dt===todayStr;if(S.qf==='pending')return !DB.results[m.id];if(S.qf==='open')return isOpen&&!hasPr;if(S.qf==='done')return hasPr;return true;});
     }
     var finishedCount=filtered.filter(function(m){return !!DB.results[m.id];}).length;
     var pendingCount2=filtered.length-finishedCount;
@@ -1040,7 +1055,7 @@ function renderLogos(){
 }
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
-  var dt=new Date(m.dt+'T'+m.ti+':00+01:00'),started=(new Date())>=dt;
+  var dt=new Date(matchKickoff(m.dt,m.ti)),started=(new Date())>=dt;
   var ptb=(S.user&&S.user!==ADMIN&&pn&&res)?ptBadge(m.id,S.user):null;
   var dateStr=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' &middot; '+m.ti;
   var scoreBlock=res?('<div class="sd"><div class="sb2">'+res.h+'</div><span style="color:var(--muted);margin:0 2px">-</span><div class="sb2">'+res.a+'</div></div>'):'<div style="color:var(--muted);font-size:1.4rem;font-weight:900">VS</div>';
@@ -1134,7 +1149,7 @@ function cardMatch(m){
    +(res&&!isAdmin()&&S.user?(function(){var ex2=0,okd2=0,ok2=0,no2=0,tot=0;for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===ADMIN)continue;var upn=uPronos(u.pseudo_key)[m.id];if(!upn)continue;tot++;var ub=ptBadge(m.id,u.pseudo_key);if(!ub)continue;if(ub.type==='ex')ex2++;else if(ub.type==='okd')okd2++;else if(ub.type==='ok')ok2++;else no2++;}if(!tot)return '';return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+(ex2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(26,86,219,.2);color:#60a5fa">&#127919; '+ex2+'</span>':'')+(okd2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#8776; '+okd2+'</span>':'')+(ok2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#10003; '+ok2+'</span>':'')+(no2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:var(--bg);color:var(--muted)">&#10007; '+no2+'</span>':'')+'</div>';})():'')
    +'<div class="mf2"><span>&#128197; '+dateStr+(m.v&&m.v!=='TBD'?' &middot; &#128205; <a href="https://www.google.com/maps/search/'+encodeURIComponent(m.v)+'" target="_blank" style="color:var(--muted);text-decoration:none">'+m.v+'</a>':'')+'</span>'
    +'<span>'+tvTagLDC(m.ph)+' '+countdown(m.dt,m.ti)+'</span></div>'
-   +(!started&&S.user&&S.user!==ADMIN?'<div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:right">&#128274; Prono jusqu\'au '+new Date(m.dt+'T'+m.ti+':00+01:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' à '+m.ti+'</div>':'')+'</div>';
+   +(!started&&S.user&&S.user!==ADMIN?'<div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:right">&#128274; Prono jusqu\'au '+new Date(matchKickoff(m.dt,m.ti)).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' à '+m.ti+'</div>':'')+'</div>';
 }
 
 function pgClass(){
@@ -1302,7 +1317,7 @@ function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;r
 function jokerActivationForm(j){
   var meta=JOKER_META[j.joker_type];
   var now=Date.now();
-  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;var k=new Date(m.dt+'T'+m.ti+':00').getTime();return!isNaN(k)&&k>now;});
+  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;var k=matchKickoff(m.dt,m.ti);return!isNaN(k)&&k>now;});
   var matchOpts=upcoming.map(function(m){return '<option value="'+m.id+'">'+m.h+' vs '+m.a+' — '+m.dt+' '+m.ti+'</option>';}).join('');
   var targetField='';
   if(meta.target==='user'){
@@ -2332,12 +2347,12 @@ async function hSaveTeamInline(inp){
 function updateAdminBanner(){var ban=document.getElementById('adm-ban');if(!ban)return;if(adminMode&&isAdmin()){ban.classList.add('on');document.documentElement.style.setProperty('--ban','32px');}else{ban.classList.remove('on');document.documentElement.style.setProperty('--ban','0px');}}
 async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('ame');if(adminMode){adminMode=false;SESSION_PIN=null;updateAdminBanner();toast('Mode admin désactivé');render();return;}var pin=gv('apm');var r=await secureCall('adminVerifyPin',{pin:pin});if(!r.ok){if(e)e.textContent='PIN incorrect.';return;}SESSION_PIN=pin;adminMode=true;updateAdminBanner();toast('Mode admin activé');render();}
 
-function countdown(dt,ti){var kickoff=new Date(dt+'T'+ti+':00+01:00'),diff=kickoff-new Date();if(diff<=0)return '';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
-function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date()<new Date(m.dt+'T'+m.ti)&&!pr[m.id])n++;}return n;}
+function countdown(dt,ti){var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
+function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date().getTime()<matchKickoff(m.dt,m.ti)&&!pr[m.id])n++;}return n;}
 function notifSupported(){return 'Notification' in window&&'serviceWorker' in navigator;}
 async function requestNotif(){var p=await Notification.requestPermission();if(p==='granted'){toast('Notifications activées ✓');render();}else toast('Notifications refusées','err');}
 function notifStatus(){if(!notifSupported())return 'unsupported';return Notification.permission;}
-function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.length;i++){var m=M[i];if(DB.results[m.id])continue;if(now>=new Date(new Date(m.dt+'T'+m.ti).getTime()+2*60*60*1000))pending.push(m);}return pending;}
+function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.length;i++){var m=M[i];if(DB.results[m.id])continue;if(now.getTime()>=matchKickoff(m.dt,m.ti)+2*60*60*1000)pending.push(m);}return pending;}
 
 async function autoFetch(silent){
   if(!silent){
@@ -2507,7 +2522,7 @@ function isMatchLiveWindow(){
   for(var i=0;i<M.length;i++){
     var m=M[i];
     if(!m.dt||!m.ti)continue;
-    var kickoff=new Date(m.dt+'T'+m.ti+':00').getTime();
+    var kickoff=matchKickoff(m.dt,m.ti);
     if(isNaN(kickoff))continue;
     if(now>=kickoff&&now<=kickoff+LIVE_WINDOW_MS&&!DB.results[m.id])return true;
   }
