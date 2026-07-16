@@ -306,8 +306,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.2';
-var BUILD   = '15/07/2026';
+var VERSION = '2.0.3';
+var BUILD   = '16/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -570,7 +570,10 @@ function calcPts(pn,r,odds){
   if(!pn||!r)return 0;
   // Cas TAB : score nul réel + vainqueur désigné par l'admin (odds.win défini)
   // Le joueur pronostique le score nul ET éventuellement le vainqueur aux tirs au but
-  if(odds&&odds.win){
+  // ⚠️ matches.winner est aussi utilisé pour la propagation du tableau KO et
+  // se retrouve rempli pour TOUT match décisif — on ne doit prendre la
+  // branche TAB QUE si le résultat réel est réellement un nul.
+  if(odds&&odds.win&&r.h===r.a){
     var pronoNul=(pn.h===pn.a);
     var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
@@ -639,8 +642,8 @@ function ptBadge(id,user){
   if(uidNum&&DB_JOKERS_RESOLVED[uidNum]&&DB_JOKERS_RESOLVED[uidNum][id])jokBonus=DB_JOKERS_RESOLVED[uidNum][id];
   earned=Math.round((earned+jokBonus)*100)/100;
   var jok=jokBonus!==0;
-  // Cas TAB
-  if(odds&&odds.win){
+  // Cas TAB (uniquement si le résultat réel est vraiment un nul)
+  if(odds&&odds.win&&r.h===r.a){
     var pronoNul=(pn.h===pn.a);
     var exactNul=(pn.h===r.h&&pn.a===r.a);
     var bonWinner=(pn.wp===odds.win);
