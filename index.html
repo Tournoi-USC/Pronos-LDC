@@ -305,7 +305,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.6';
+var VERSION = '2.0.7';
 var BUILD   = '17/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -2140,8 +2140,47 @@ function pgReglement(){
     +'</div>';
 
   if(S.regTab==='jokers'){
-    var jokersBody='<div style="max-width:640px">'
-      +'<div style="background:rgba(255,255,255,.03);border:1px dashed var(--bdr);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:.82rem">Système de jokers en préparation — les règles apparaîtront ici dès leur mise en ligne.</div>'
+    var jokersBody='<div style="max-width:640px;font-size:.88rem">'
+
+      +'<h4 style="margin-bottom:8px">Comment on en obtient</h4>'
+      +'<p style="color:var(--txt);line-height:1.6;margin-bottom:8px">Deux façons, indépendantes l\'une de l\'autre :</p>'
+      +'<ul style="color:var(--txt);line-height:1.7;margin:0 0 12px 18px;padding:0">'
+      +'<li><strong>Tous les 3 "bons résultats"</strong> (✓ ou ✓✓), tu débloques automatiquement le prochain joker de la liste (dans un ordre fixe, du plus simple au plus puissant). Cumulé sur toute la saison, jamais remis à zéro.</li>'
+      +'<li><strong>Chaque score exact</strong> (🎯) te donne un joker au <strong>choix libre</strong>, parmi les 12 disponibles, peu importe où tu en es dans la progression.</li>'
+      +'</ul>'
+      +'<p style="color:var(--muted);font-size:.8rem;margin-bottom:16px">Les deux compteurs sont totalement séparés — un score exact ne compte pas aussi comme un bon résultat pour la progression.</p>'
+
+      +'<h4 style="margin-bottom:8px">Où les gérer</h4>'
+      +'<p style="color:var(--txt);line-height:1.6;margin-bottom:8px"><strong>Profil → 🃏 Mes jokers</strong>, avec 4 sections :</p>'
+      +'<ul style="color:var(--txt);line-height:1.7;margin:0 0 16px 18px;padding:0">'
+      +'<li><strong>🎁 Choix libre à faire</strong> : jokers gagnés par score exact (ou palier au-delà du 12e), à choisir parmi les 12</li>'
+      +'<li><strong>🎒 En stock</strong> : jokers déjà choisis, prêts à activer</li>'
+      +'<li><strong>⏳ Activés, en attente</strong> : joker posé sur un match dont le résultat n\'est pas encore connu</li>'
+      +'<li><strong>✅ Utilisés</strong> : historique, avec le bonus de points obtenu</li>'
+      +'</ul>'
+
+      +'<h4 style="margin-bottom:8px">Comment activer un joker</h4>'
+      +'<ol style="color:var(--txt);line-height:1.7;margin:0 0 12px 18px;padding:0">'
+      +'<li>Profil → Mes jokers → repère un joker "En stock"</li>'
+      +'<li>Clique <strong>Activer</strong></li>'
+      +'<li>Choisis le <strong>match</strong> sur lequel l\'utiliser (n\'importe quel match à venir, pas obligatoirement le prochain)</li>'
+      +'<li>Si le joker cible un autre joueur ou un groupe adverse (Duel, Raid, Régicide, Pirate), un sélecteur supplémentaire apparaît — choisis ta cible</li>'
+      +'<li>Confirme</li>'
+      +'</ol>'
+      +'<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:.8rem;color:var(--txt);line-height:1.6">'
+      +'⚠️ Une fois activé, impossible de changer de match ou de cible.<br>'
+      +'⚠️ Un seul joker actif par match — tu ne peux pas en cumuler plusieurs sur le même match.<br>'
+      +'⚠️ Le Visionnaire doit être activé au moins 7 jours avant le coup d\'envoi, et verrouille ton pronostic sur ce match (plus modifiable).'
+      +'</div>'
+
+      +'<h4 style="margin-bottom:8px">Comment le résultat arrive</h4>'
+      +'<p style="color:var(--txt);line-height:1.6;margin-bottom:16px">Rien à faire ensuite — ton joker est automatiquement résolu dès que le score officiel du match est disponible, et le bonus (ou l\'absence de bonus, selon les cas) apparaît dans "✅ Utilisés" et dans ton total de points.</p>'
+
+      +'<h4 style="margin-bottom:8px">Les 12 jokers</h4>'
+      +'<div style="display:flex;flex-direction:column;gap:6px">'
+      +Object.keys(JOKER_META).map(function(jt){var m=JOKER_META[jt];return '<div style="display:flex;gap:10px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px"><span style="font-size:1.1rem">'+m.ic+'</span><div><div style="font-weight:700;font-size:.85rem">'+m.name+'</div><div style="color:var(--muted);font-size:.78rem">'+m.desc+'</div></div></div>';}).join('')
+      +'</div>'
+
       +'</div>';
     return h+tabsH+jokersBody;
   }
