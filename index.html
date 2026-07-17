@@ -305,7 +305,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.5';
+var VERSION = '2.0.6';
 var BUILD   = '17/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -2570,6 +2570,16 @@ function setupRealtime(){
             if(isAdmin()&&BRACKET_NEXT[+mid]){
               var w=getWinner(+mid);
               if(w)await propagateMatch(+mid);
+            }
+            // Un score qui tombe est le seul moment où de nouveaux jokers
+            // peuvent être débloqués/résolus côté serveur — on rafraîchit
+            // discrètement l'inventaire du joueur connecté (RLS empêche
+            // Realtime de pousser directement les jokers non résolus).
+            if(S.user&&S.user!==ADMIN&&SESSION_PW){
+              secureCall('getMyJokers',{pseudo:S.user,password:SESSION_PW}).then(function(r){
+                if(r.ok)DB_JOKERS=r.jokers||[];
+                render();
+              });
             }
           }
           render();
