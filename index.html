@@ -220,7 +220,6 @@ input,button,select,textarea{font-family:inherit}
 .qf{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .qfb{padding:6px 12px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);cursor:pointer;font-size:.75rem;font-weight:600}
 .qfb.on{background:rgba(26,86,219,.15);color:var(--gold);border-color:var(--gold)}
-.notif-bar{background:rgba(26,86,219,.1);border:1px solid rgba(26,86,219,.25);border-radius:10px;padding:11px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .ldc-legend{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:.75rem}
 .ldc-legend-item{display:flex;align-items:center;gap:6px}
 .ldc-dot{width:10px;height:10px;border-radius:50%}
@@ -306,8 +305,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.3';
-var BUILD   = '16/07/2026';
+var VERSION = '2.0.5';
+var BUILD   = '17/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -483,7 +482,13 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   }
   return{ok:true};
 }
-function doLogout(){S.user=null;adminMode=false;SESSION_PW=null;SESSION_PIN=null;DB_JOKERS=[];localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');updateAdminBanner();go('accueil');}
+function doLogout(){
+  localStorage.removeItem('ldc_ses');
+  localStorage.removeItem('ldc_grp');
+  // Navigation réelle (pas juste go()) pour repartir sur l'URL racine,
+  // sans le ?g=... du groupe précédemment connecté.
+  window.location.href=window.location.origin+window.location.pathname;
+}
 async function chgPw(o,n){
   if(!S.user)return{ok:false,msg:'Non connecté'};
   if(n.length<3)return{ok:false,msg:'Trop court'};
@@ -964,11 +969,6 @@ function pgMatchs(){
       +'</div>';
   }
 
-  var notifH='';
-  if(S.user&&S.user!==ADMIN&&notifSupported()&&notifStatus()==='default'){
-    notifH='<div class="notif-bar"><p>&#128276; Recevez une notification dès qu\'un score tombe</p><button class="btn-g" style="padding:7px 14px;font-size:.8rem" onclick="requestNotif()">Activer</button></div>';
-  }
-
   // Filtres équipe et date (appliqués après qf pour que les selects reflètent les résultats qf)
   if(S.search){
     var sq=S.search.toLowerCase();
@@ -1017,7 +1017,7 @@ function pgMatchs(){
 
   var totalM2=M.filter(function(m){return m.ph===S.tab;}).length;
   return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; Saisissez votre pronostic sur chaque carte.</p>'
-    +notifH+banner
+    +banner
     +'<div class="matchs-sticky">'+tabsH+jourH+searchH+qfH+'</div>'
     +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
@@ -1253,7 +1253,7 @@ function pgProfil(){
   }
   var profTabsH='<div class="tabs" style="margin:20px 0 12px">'
     +'<button class="tb'+(S.profTab==='pronos'?' on':'')+'" onclick="S.profTab=\'pronos\';render()">📋 Mes pronostics</button>'
-    +'<button class="tb'+(S.profTab==='jokers'?' on':'')+'" onclick="S.profTab=\'jokers\';render()">🃏 Mes jokers</button>'
+    +'<button class="tb'+(S.profTab==='jokers'?' on':'')+'" onclick="S.profTab=\'jokers\';render();if(SESSION_PW)hRefreshMyJokers();">🃏 Mes jokers</button>'
     +'</div>';
   var tabBody=(S.profTab==='jokers')?renderMyJokers():('<h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px">MES PRONOSTICS</h3>'+pronosH);
   return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
@@ -1268,7 +1268,7 @@ function renderMyJokers(){
   var available=DB_JOKERS.filter(function(j){return j.joker_type&&!j.activated_at;});
   var activated=DB_JOKERS.filter(function(j){return j.activated_at&&!j.resolved;});
   var resolved=DB_JOKERS.filter(function(j){return j.resolved;});
-  var h='';
+  var h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn-o" style="font-size:.78rem;padding:6px 12px" onclick="hRefreshMyJokers()">&#128260; Rafraîchir mes jokers</button></div>';
 
   if(pending.length){
     h+='<h4 style="margin-bottom:8px">🎁 Choix libre à faire ('+pending.length+')</h4>';
@@ -2099,6 +2099,17 @@ function hPronoChange(id){
 }
 function tCpw(){S.cpw=!S.cpw;render();}
 function tAvEdit(){S.avEdit=!S.avEdit;render();}
+async function hRefreshMyJokers(){
+  if(!S.user||S.user===ADMIN)return;
+  var pw=SESSION_PW;
+  if(!pw){pw=prompt('Confirmez votre mot de passe pour rafraîchir vos jokers :');if(!pw)return;}
+  var r=await secureCall('getMyJokers',{pseudo:S.user,password:pw});
+  if(!r.ok){toast(r.msg||'Erreur','err');return;}
+  SESSION_PW=pw;
+  DB_JOKERS=r.jokers||[];
+  toast('Jokers à jour ✓');
+  render();
+}
 async function hChangeAvatar(){
   if(!sb||!S.user||S.user===ADMIN)return;
   var inp=document.getElementById('sel-avatar-prof');
@@ -2352,9 +2363,6 @@ async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}va
 
 function countdown(dt,ti){var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
 function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date().getTime()<matchKickoff(m.dt,m.ti)&&!pr[m.id])n++;}return n;}
-function notifSupported(){return 'Notification' in window&&'serviceWorker' in navigator;}
-async function requestNotif(){var p=await Notification.requestPermission();if(p==='granted'){toast('Notifications activées ✓');render();}else toast('Notifications refusées','err');}
-function notifStatus(){if(!notifSupported())return 'unsupported';return Notification.permission;}
 function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.length;i++){var m=M[i];if(DB.results[m.id])continue;if(now.getTime()>=matchKickoff(m.dt,m.ti)+2*60*60*1000)pending.push(m);}return pending;}
 
 async function autoFetch(silent){
