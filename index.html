@@ -278,7 +278,7 @@ input,button,select,textarea{font-family:inherit}
 <script>
 /* ── Mini client Supabase REST + WebSocket ── */
 var supabase={createClient:function(url,key){var H={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key};function rest(t,q){return url+'/rest/v1/'+t+(q?'?'+q:'');}function req(t,method,body,extraH,qs){return fetch(rest(t,qs),{method:method,headers:Object.assign({},H,extraH||{}),body:body!=null?JSON.stringify(body):undefined}).then(function(r){if(r.status===204||r.status===201)return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:null};try{var d=JSON.parse(txt);return{data:d,error:null};}catch(e){return{data:null,error:null};}});return r.text().then(function(txt){if(!txt||!txt.trim())return{data:null,error:r.ok?null:{message:'Empty response'}};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||d.details||JSON.stringify(d)}};}catch(e){return{data:null,error:r.ok?null:{message:txt}};}});}).catch(function(e){return{data:null,error:{message:e.message}};});}function buildQ(sel,filters,ord,single){var q='select='+(sel||'*');(filters||[]).forEach(function(f){q+='&'+f;});if(ord)q+='&order='+ord;if(single)q+='&limit=1';return q;}function tableClient(t){var _sel='*',_f=[],_ord=null;var c={select:function(s){_sel=s;return c;},eq:function(col,v){_f.push(col+'=eq.'+encodeURIComponent(v));return c;},order:function(col){_ord=col;return c;},insert:function(b){return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'return=representation'});},upsert:function(b,opts){var oc=opts&&opts.onConflict?'on_conflict='+encodeURIComponent(opts.onConflict):'';return req(t,'POST',Array.isArray(b)?b:[b],{'Prefer':'resolution=merge-duplicates,return=minimal'},oc||undefined);},update:function(b){return{eq:function(col,v){return req(t,'PATCH',b,{'Prefer':'return=representation'},col+'=eq.'+encodeURIComponent(v));}};},delete:function(){return{eq:function(col,v){return req(t,'DELETE',null,{},col+'=eq.'+encodeURIComponent(v));}};},single:function(){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:Object.assign({'Accept':'application/vnd.pgrst.object+json'},H)}).then(function(r){return r.json().then(function(d){return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||JSON.stringify(d)}};});}).catch(function(e){return{data:null,error:{message:e.message}};});},then:function(res,rej){return fetch(rest(t,buildQ(_sel,_f,_ord)),{headers:H}).then(function(r){return r.text().then(function(txt){if(!txt||!txt.trim())return{data:[],error:null};try{var d=JSON.parse(txt);return r.ok?{data:d,error:null}:{data:null,error:{message:d.message||txt}};}catch(e){return{data:[],error:null};}});}).catch(function(e){return{data:null,error:{message:e.message}};}).then(res,rej);}};return c;}
-var wsCbs=[],wsRef=0,ws=null,wsManualClose=true,wsRetryTimer=null;
+var wsCbs=[],wsRef=0,ws=null,wsManualClose=true,wsRetryTimer=null,wsHeartbeatTimer=null;
 function wsConnect(){
   if(ws&&(ws.readyState===0||ws.readyState===1))return; // déjà connecté / en cours
   wsManualClose=false;
@@ -286,15 +286,26 @@ function wsConnect(){
   try{
     var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';
     ws=new WebSocket(wsUrl);
-    ws.onopen=function(){ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'}]}}}));};
+    ws.onopen=function(){
+      ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'},{event:'*',schema:'public',table:'jokers_inventory'}]}}}));
+      // Obligatoire : sans heartbeat régulier (max 25s selon la doc
+      // Supabase), la connexion est fermée silencieusement par le serveur
+      // après quelques dizaines de secondes d'inactivité — c'est ce qui
+      // empêchait les mises à jour en direct de fonctionner de façon fiable.
+      if(wsHeartbeatTimer)clearInterval(wsHeartbeatTimer);
+      wsHeartbeatTimer=setInterval(function(){
+        if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',ref:String(++wsRef),payload:{}}));
+      },20000);
+    };
     ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};
     ws.onerror=function(e){console.warn('WS error');};
-    ws.onclose=function(){ws=null;if(!wsManualClose){wsRetryTimer=setTimeout(wsConnect,5000);}};
+    ws.onclose=function(){ws=null;if(wsHeartbeatTimer){clearInterval(wsHeartbeatTimer);wsHeartbeatTimer=null;}if(!wsManualClose){wsRetryTimer=setTimeout(wsConnect,5000);}};
   }catch(e){console.warn('WS:',e.message);}
 }
 function wsDisconnect(){
   wsManualClose=true;
   if(wsRetryTimer){clearTimeout(wsRetryTimer);wsRetryTimer=null;}
+  if(wsHeartbeatTimer){clearInterval(wsHeartbeatTimer);wsHeartbeatTimer=null;}
   if(ws){try{ws.close();}catch(e){}ws=null;}
 }
 return{from:function(t){return tableClient(t);},channel:function(name){return{on:function(evtType,filter,cb){wsCbs.push(function(msg){var d=msg.payload&&msg.payload.data;if(!d)return;if(filter.table&&filter.table!=='*'&&d.table!==filter.table)return;cb({eventType:d.type,new:d.record||{},old:d.old_record||{}});});return this;},subscribe:function(){return this;}};},_realtimeConnect:wsConnect,_realtimeDisconnect:wsDisconnect};}};
@@ -305,8 +316,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.8';
-var BUILD   = '17/07/2026';
+var VERSION = '2.0.9';
+var BUILD   = '18/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
