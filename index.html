@@ -305,7 +305,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.7';
+var VERSION = '2.0.8';
 var BUILD   = '17/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -317,10 +317,13 @@ var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
-// cours (jamais dans localStorage, jamais renvoyés par le serveur) —
-// réutilisés pour autoriser silencieusement les actions suivantes
-// (changer avatar, saisir un score...) sans redemander à chaque fois.
-var SESSION_PW=null,SESSION_PIN=null;
+// cours (jamais dans localStorage — persistant indéfiniment — mais dans
+// sessionStorage : survit à un F5/rechargement de l'onglet, disparaît à
+// la fermeture de l'onglet/navigateur). Réutilisés pour autoriser
+// silencieusement les actions suivantes (changer avatar, rafraîchir les
+// jokers...) sans redemander le mot de passe à chaque rechargement.
+var SESSION_PW=sessionStorage.getItem('ldc_pw')||null,SESSION_PIN=null;
+function setSessionPw(pw){SESSION_PW=pw;if(pw)sessionStorage.setItem('ldc_pw',pw);else sessionStorage.removeItem('ldc_pw');}
 var USERS_SAFE_COLS='id,pseudo_key,pseudo_display,avatar,group_id';
 var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[],assets:{}};
 var sb=null,SB_ERROR='';
@@ -415,7 +418,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   if(existing){
     var r=await secureCall('login',{pseudo:k,password:pw});
     if(!r.ok)return{ok:false,msg:r.msg||'Mot de passe incorrect.'};
-    SESSION_PW=pw;
+    setSessionPw(pw);
     DB.userMap[k]=r.user;
     for(var ei=0;ei<DB.users.length;ei++)if(DB.users[ei].pseudo_key===k){DB.users[ei]=r.user;break;}
     if(!DB.pronos[k])DB.pronos[k]={};
@@ -438,7 +441,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   if(!GROUP_ID){
     var r2=await secureCall('login',{pseudo:k,password:pw});
     if(r2.ok){
-      SESSION_PW=pw;
+      setSessionPw(pw);
       DB.users.push(r2.user);DB.userMap[k]=r2.user;DB.pronos[k]={};
       (r2.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
       if(k!==ADMIN)DB_JOKERS=r2.myJokers||[];
@@ -471,7 +474,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
   if(!insertRes.ok)
     return{ok:false,msg:'Pseudo déjà pris dans cette équipe. Choisissez-en un autre.'};
   var nu=Array.isArray(insertRes.data)?insertRes.data[0]:insertRes.data;
-  SESSION_PW=pw;
+  setSessionPw(pw);
   DB.users.push(nu);DB.userMap[k]=nu;DB.pronos[k]={};
   S.user=k;
   localStorage.setItem('ldc_ses',k);
@@ -485,6 +488,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
 function doLogout(){
   localStorage.removeItem('ldc_ses');
   localStorage.removeItem('ldc_grp');
+  sessionStorage.removeItem('ldc_pw');
   // Navigation réelle (pas juste go()) pour repartir sur l'URL racine,
   // sans le ?g=... du groupe précédemment connecté.
   window.location.href=window.location.origin+window.location.pathname;
@@ -493,7 +497,7 @@ async function chgPw(o,n){
   if(!S.user)return{ok:false,msg:'Non connecté'};
   if(n.length<3)return{ok:false,msg:'Trop court'};
   var r=await secureCall('changePassword',{pseudo:S.user,oldPassword:o,newPassword:n});
-  if(r.ok)SESSION_PW=n;
+  if(r.ok)setSessionPw(n);
   return r;
 }
 async function admReset(pseudo,np,pin){
@@ -2105,7 +2109,7 @@ async function hRefreshMyJokers(){
   if(!pw){pw=prompt('Confirmez votre mot de passe pour rafraîchir vos jokers :');if(!pw)return;}
   var r=await secureCall('getMyJokers',{pseudo:S.user,password:pw});
   if(!r.ok){toast(r.msg||'Erreur','err');return;}
-  SESSION_PW=pw;
+  setSessionPw(pw);
   DB_JOKERS=r.jokers||[];
   toast('Jokers à jour ✓');
   render();
@@ -2122,7 +2126,7 @@ async function hChangeAvatar(){
   if(!pw){pw=prompt('Confirmez votre mot de passe pour changer d\'avatar :');if(!pw)return;}
   var r=await secureCall('changeAvatar',{pseudo:S.user,password:pw,avatar:av});
   if(!r.ok){if(e)e.textContent=r.msg||'Erreur';return;}
-  SESSION_PW=pw;
+  setSessionPw(pw);
   uu.avatar=av;
   S.avEdit=false;
   toast('Avatar mis à jour ✓');
@@ -2709,6 +2713,14 @@ async function init(){
   if(ses&&ses!==ADMIN&&GROUP_ID&&sesGrp!==GROUP_ID){localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');ses=null;}
   if(ses&&DB.userMap[ses])S.user=ses;
   if(!GROUP_ID&&S.user&&S.user!==ADMIN){var udataR=DB.userMap[S.user];if(udataR&&udataR.group_id){window.location.replace(window.location.pathname+'?g='+udataR.group_id);return;}}
+  // Session restaurée + mot de passe encore disponible (sessionStorage,
+  // survit à un F5) → recharge silencieusement l'inventaire de jokers,
+  // sans quoi il resterait vide jusqu'au prochain clic sur "Rafraîchir".
+  if(S.user&&S.user!==ADMIN&&SESSION_PW){
+    secureCall('getMyJokers',{pseudo:S.user,password:SESSION_PW}).then(function(r){
+      if(r.ok){DB_JOKERS=r.jokers||[];render();}
+    });
+  }
   try{setupRealtime();syncRealtimeState();}catch(e){console.warn('Realtime:',e);}
   // Mécanisme 3 : si l'admin était déjà connecté (session restaurée) →
   // propager silencieusement les qualifiés manquants au démarrage
