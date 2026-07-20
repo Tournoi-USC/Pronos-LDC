@@ -287,7 +287,8 @@ function wsConnect(){
     var wsUrl=url.replace(/^https/,'wss').replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+key+'&vsn=1.0.0';
     ws=new WebSocket(wsUrl);
     ws.onopen=function(){
-      ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'},{event:'*',schema:'public',table:'jokers_inventory'}]}}}));
+      console.log('[Realtime] WS connecté, envoi phx_join');
+      ws.send(JSON.stringify({topic:'realtime:public',event:'phx_join',ref:String(++wsRef),payload:{config:{postgres_changes:[{event:'*',schema:'public',table:'results'},{event:'*',schema:'public',table:'pronos'},{event:'UPDATE',schema:'public',table:'matches'},{event:'*',schema:'public',table:'confrontations'},{event:'*',schema:'public',table:'confrontation_groups'},{event:'*',schema:'public',table:'users'},{event:'*',schema:'public',table:'groups'},{event:'*',schema:'public',table:'jokers_inventory'}]},access_token:key}}));
       // Obligatoire : sans heartbeat régulier (max 25s selon la doc
       // Supabase), la connexion est fermée silencieusement par le serveur
       // après quelques dizaines de secondes d'inactivité — c'est ce qui
@@ -297,9 +298,9 @@ function wsConnect(){
         if(ws&&ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',ref:String(++wsRef),payload:{}}));
       },20000);
     };
-    ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};
-    ws.onerror=function(e){console.warn('WS error');};
-    ws.onclose=function(){ws=null;if(wsHeartbeatTimer){clearInterval(wsHeartbeatTimer);wsHeartbeatTimer=null;}if(!wsManualClose){wsRetryTimer=setTimeout(wsConnect,5000);}};
+    ws.onmessage=function(ev){setTimeout(function(){try{var msg=JSON.parse(ev.data);console.log('[Realtime] message reçu:',msg.event,msg);var d=msg.payload&&msg.payload.data;if(!d)return;wsCbs.forEach(function(cb){try{cb(msg);}catch(e){}});}catch(e){}},0);};
+    ws.onerror=function(e){console.warn('[Realtime] WS error',e);};
+    ws.onclose=function(ev){console.log('[Realtime] WS fermé, code='+ev.code+' raison="'+ev.reason+'"');ws=null;if(wsHeartbeatTimer){clearInterval(wsHeartbeatTimer);wsHeartbeatTimer=null;}if(!wsManualClose){wsRetryTimer=setTimeout(wsConnect,5000);}};
   }catch(e){console.warn('WS:',e.message);}
 }
 function wsDisconnect(){
@@ -316,7 +317,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.0.9';
+var VERSION = '2.1.0';
 var BUILD   = '18/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -2599,6 +2600,7 @@ function syncRealtimeState(){
   var shouldBeLive=isAdmin()||isMatchLiveWindow();
   if(shouldBeLive===rtDesired)return;
   rtDesired=shouldBeLive;
+  console.log('[Realtime] syncRealtimeState → '+(shouldBeLive?'CONNEXION':'DÉCONNEXION')+' (isAdmin='+isAdmin()+', liveWindow='+isMatchLiveWindow()+')');
   if(shouldBeLive)sb._realtimeConnect();
   else sb._realtimeDisconnect();
 }
