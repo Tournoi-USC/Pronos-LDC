@@ -317,7 +317,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.1.1';
+var VERSION = '2.1.2';
 var BUILD   = '18/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -2416,7 +2416,7 @@ async function hSaveTeamInline(inp){
 function updateAdminBanner(){var ban=document.getElementById('adm-ban');if(!ban)return;if(adminMode&&isAdmin()){ban.classList.add('on');document.documentElement.style.setProperty('--ban','32px');}else{ban.classList.remove('on');document.documentElement.style.setProperty('--ban','0px');}}
 async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('ame');if(adminMode){adminMode=false;SESSION_PIN=null;updateAdminBanner();toast('Mode admin désactivé');render();return;}var pin=gv('apm');var r=await secureCall('adminVerifyPin',{pin:pin});if(!r.ok){if(e)e.textContent='PIN incorrect.';return;}SESSION_PIN=pin;adminMode=true;updateAdminBanner();toast('Mode admin activé');render();}
 
-function countdown(dt,ti){var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
+function countdown(dt,ti){var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '<span class="cd hot">&#9917; Match débuté</span>';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
 function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date().getTime()<matchKickoff(m.dt,m.ti)&&!pr[m.id])n++;}return n;}
 function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.length;i++){var m=M[i];if(DB.results[m.id])continue;if(now.getTime()>=matchKickoff(m.dt,m.ti)+2*60*60*1000)pending.push(m);}return pending;}
 
