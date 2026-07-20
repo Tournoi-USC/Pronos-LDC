@@ -317,7 +317,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.1.0';
+var VERSION = '2.1.1';
 var BUILD   = '18/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1167,7 +1167,7 @@ function cardMatch(m){
    +oddsBlock+pronoBlock+adminBlock
    +(res&&!isAdmin()&&S.user?(function(){var ex2=0,okd2=0,ok2=0,no2=0,tot=0;for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===ADMIN)continue;var upn=uPronos(u.pseudo_key)[m.id];if(!upn)continue;tot++;var ub=ptBadge(m.id,u.pseudo_key);if(!ub)continue;if(ub.type==='ex')ex2++;else if(ub.type==='okd')okd2++;else if(ub.type==='ok')ok2++;else no2++;}if(!tot)return '';return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+(ex2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(26,86,219,.2);color:#60a5fa">&#127919; '+ex2+'</span>':'')+(okd2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#8776; '+okd2+'</span>':'')+(ok2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#10003; '+ok2+'</span>':'')+(no2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:var(--bg);color:var(--muted)">&#10007; '+no2+'</span>':'')+'</div>';})():'')
    +'<div class="mf2"><span>&#128197; '+dateStr+(m.v&&m.v!=='TBD'?' &middot; &#128205; <a href="https://www.google.com/maps/search/'+encodeURIComponent(m.v)+'" target="_blank" style="color:var(--muted);text-decoration:none">'+m.v+'</a>':'')+'</span>'
-   +'<span>'+tvTagLDC(m.ph)+' '+countdown(m.dt,m.ti)+'</span></div>'
+   +'<span>'+tvTagLDC(m.ph)+' <span id="cd-'+m.id+'">'+countdown(m.dt,m.ti)+'</span></span></div>'
    +(!started&&S.user&&S.user!==ADMIN?'<div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:right">&#128274; Prono jusqu\'au '+new Date(matchKickoff(m.dt,m.ti)).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' à '+m.ti+'</div>':'')+'</div>';
 }
 
@@ -2605,6 +2605,16 @@ function syncRealtimeState(){
   else sb._realtimeDisconnect();
 }
 setInterval(syncRealtimeState,60000); // ré-évalue chaque minute
+// Rafraîchit uniquement l'affichage du temps restant avant chaque match,
+// sans re-render complet de la page (qui effacerait un prono en cours de
+// saisie pas encore enregistré). Ne touche que les éléments #cd-{id}
+// actuellement affichés à l'écran.
+setInterval(function(){
+  for(var i=0;i<M.length;i++){
+    var el=document.getElementById('cd-'+M[i].id);
+    if(el)el.innerHTML=countdown(M[i].dt,M[i].ti);
+  }
+},30000);
 
 function setupRealtime(){
   if(!sb)return;
