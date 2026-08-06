@@ -11,6 +11,12 @@
   if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister();});});}
   if('caches' in window){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c);});});}
   if(reset){var cleanUrl=location.pathname+(location.search.replace(/[?&]?reset=1/,'')||'');history.replaceState(null,'',cleanUrl||location.pathname);}
+  // Thème clair/sombre appliqué avant le premier rendu (évite un flash du
+  // mauvais thème). Sombre par défaut si aucune préférence enregistrée.
+  try{
+    var theme=localStorage.getItem('ldc_theme')||'dark';
+    if(theme==='light')document.documentElement.setAttribute('data-theme','light');
+  }catch(e){}
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -38,7 +44,23 @@ body{overflow-x:hidden}
   --bdr:#1e2a3a;
   --grn:#22c55e;
   --red:#ef4444;
+  --acc-purple:rgba(139,92,246,.12);--acc-purple-tx:#8b5cf6;
+  --acc-mint:rgba(16,185,129,.12);--acc-mint-tx:#10b981;
+  --acc-orange:rgba(249,115,22,.12);--acc-orange-tx:#f97316;
+  --acc-blue:rgba(37,99,235,.12);--acc-blue-tx:#2563eb;
   --sw:260px;--ban:0px
+}
+html[data-theme="light"]{
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --nav:#ffffff;
+  --txt:#1e2433;
+  --muted:#6b7690;
+  --bdr:#e6e9f2;
+  --acc-purple:#efe9ff;
+  --acc-mint:#e4f9f0;
+  --acc-orange:#fff2e4;
+  --acc-blue:#e9f0ff;
 }
 body{font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
 input,button,select,textarea{font-family:inherit}
@@ -46,6 +68,14 @@ input,button,select,textarea{font-family:inherit}
 .admin-banner.on{display:flex}
 .sb{width:var(--sw);background:var(--nav);position:fixed;top:var(--ban);left:0;height:calc(100vh - var(--ban));display:flex;flex-direction:column;z-index:100;border-right:1px solid var(--bdr)}
 .sb-logo{padding:20px;display:flex;align-items:center;gap:10px;color:var(--gold);font-weight:800;font-size:1.1rem;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none}
+.sb-ball-icon{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.35)}
+.theme-toggle{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;border-radius:20px;border:1px solid var(--bdr);background:var(--card);color:var(--txt);font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s}
+.theme-toggle:hover{border-color:var(--gold)}
+.sb-promo{margin:16px 16px 20px;padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--acc-blue),var(--acc-purple));border:1px solid var(--bdr)}
+.sb-promo-text{font-weight:800;color:var(--gold);font-size:.92rem;margin-bottom:4px;line-height:1.3}
+.sb-promo-sub{color:var(--muted);font-size:.78rem;line-height:1.4;margin-bottom:12px}
+.sb-promo-btn{width:100%;padding:9px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-weight:700;font-size:.8rem;cursor:pointer;transition:opacity .15s}
+.sb-promo-btn:hover{opacity:.88}
 .mtop{display:none;position:fixed;top:var(--ban);left:0;right:0;height:46px;background:var(--nav);border-bottom:1px solid var(--bdr);align-items:center;justify-content:center;gap:10px;z-index:90;transition:top .15s}
 .mtop img{height:28px;border-radius:4px}
 .sb-nav{padding:12px 0;flex:1}
@@ -55,7 +85,16 @@ input,button,select,textarea{font-family:inherit}
 .main{margin-left:var(--sw);flex:1;padding:32px;padding-bottom:80px;min-height:100vh}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:24px}
 .sc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px}
+.sc.t-purple{background:var(--acc-purple)}
+.sc.t-mint{background:var(--acc-mint)}
+.sc.t-orange{background:var(--acc-orange)}
+.sc.t-blue{background:var(--acc-blue)}
 .sl{color:var(--muted);font-size:.82rem;display:flex;align-items:center;justify-content:space-between}
+.sl span{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.t-purple .sl span{background:rgba(139,92,246,.18);color:var(--acc-purple-tx)}
+.t-mint .sl span{background:rgba(16,185,129,.18);color:var(--acc-mint-tx)}
+.t-orange .sl span{background:rgba(249,115,22,.18);color:var(--acc-orange-tx)}
+.t-blue .sl span{background:rgba(37,99,235,.18);color:var(--acc-blue-tx)}
 .sv{font-size:1.9rem;font-weight:800;margin-top:8px}
 .ss{color:var(--muted);font-size:.78rem;margin-top:4px}
 .ss.g{color:var(--gold)}
@@ -66,6 +105,9 @@ input,button,select,textarea{font-family:inherit}
 .htag{color:var(--gold);font-size:.83rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
 .htitle{font-size:2.8rem;font-weight:900;line-height:1.05}
 .hsub{color:var(--muted);margin-top:10px;max-width:520px;line-height:1.6}
+.hhead{position:relative}
+.hillus{position:absolute;top:-10px;right:0;width:220px;height:220px;pointer-events:none;opacity:.9}
+@media(max-width:1100px){.hillus{display:none}}
 .sec-title{font-size:.85rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;margin-top:28px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
 .tb{padding:8px 14px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);cursor:pointer;font-size:.78rem;font-weight:600}
@@ -251,9 +293,20 @@ input,button,select,textarea{font-family:inherit}
 <div id="save-bar-portal"></div>
 <div class="ov" id="ov"></div>
 <nav class="sb" id="sb">
-  <div class="sb-logo" onclick="logoClick()" title="Cliquer : retour à l'accueil" style="cursor:pointer"><span id="sb-logos" style="display:inline-flex;align-items:center;gap:6px;margin-right:6px"></span>&#9917; <span>PRONO LDC 26/27</span><span id="ver-badge" style="font-size:.6rem;opacity:.45;margin-left:6px;font-weight:400">v1.3.5</span></div>
+  <div class="sb-logo" onclick="logoClick()" title="Cliquer : retour à l'accueil" style="cursor:pointer;justify-content:space-between;align-items:flex-start">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="sb-logos" style="display:inline-flex;align-items:center;gap:6px"></span>
+      <span class="sb-ball-icon">&#9917;</span>
+      <span style="line-height:1.15">PRONO LDC<br>26/27</span>
+    </div>
+    <span id="ver-badge" style="font-size:.6rem;opacity:.45;font-weight:400;margin-top:2px">v1.3.5</span>
+  </div>
+  <div style="padding:10px 20px 4px">
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="event.stopPropagation();toggleTheme()" title="Changer de thème"></button>
+  </div>
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
+  <div id="sb-promo"></div>
 </nav>
 <main class="main" id="main"></main>
 <div id="tc"></div>
@@ -317,8 +370,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.1.2';
-var BUILD   = '18/07/2026';
+var VERSION = '2.2.0';
+var BUILD   = '20/07/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -896,17 +949,30 @@ function pgAccueil(){
       +'<div style="font-weight:700;font-size:.9rem">'+nextM.h+' vs '+nextM.a+'</div>'
       +'<div style="font-size:.72rem;color:var(--gold)">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
   }
-  var h='<div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
+  var illus='<svg class="hillus" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">'
+    +'<rect x="8" y="14" width="15" height="15" rx="4" fill="var(--acc-orange-tx)" opacity=".55" transform="rotate(15 16 22)"/>'
+    +'<circle cx="202" cy="38" r="7" fill="var(--acc-mint-tx)" opacity=".55"/>'
+    +'<rect x="184" y="148" width="13" height="13" rx="3" fill="var(--acc-purple-tx)" opacity=".55" transform="rotate(-20 191 155)"/>'
+    +'<circle cx="18" cy="178" r="5" fill="var(--gold)" opacity=".45"/>'
+    +'<rect x="30" y="185" width="10" height="10" rx="3" fill="var(--acc-blue-tx)" opacity=".45" transform="rotate(10 35 190)"/>'
+    +'<circle cx="110" cy="112" r="68" fill="var(--card)" stroke="var(--bdr)" stroke-width="2"/>'
+    +'<g fill="none" stroke="var(--txt)" stroke-width="1.4" opacity=".3">'
+    +'<circle cx="110" cy="112" r="68"/>'
+    +'<path d="M110 44 L110 180 M42 112 L178 112 M60 60 L160 164 M160 60 L60 164"/>'
+    +'</g>'
+    +'<polygon points="110,88 126,99 120,118 100,118 94,99" fill="var(--txt)" opacity=".85"/>'
+    +'</svg>';
+  var h='<div class="hhead">'+illus+'<div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
    +(currentGroupName()?'<div style="font-size:.78rem;color:var(--gold);font-weight:600;margin-bottom:4px">&#128101; '+currentGroupName()+'</div>':'')
    +'<div class="htitle">À VOS PRONOS&nbsp;!</div>'
    +nextBlock
    +(currentGroupName()?'<div style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.4);border-radius:20px;padding:4px 14px;font-size:.8rem;font-weight:700;color:var(--gold)">&#128101; Groupe : '+currentGroupName()+'</div>':'')
-   +'<p class="hsub">36 clubs. 189 matchs. Une seule finale. Pronostiquez chaque rencontre et montez au sommet du classement.</p>'
+   +'<p class="hsub">36 clubs. 189 matchs. Une seule finale. Pronostiquez chaque rencontre et montez au sommet du classement.</p></div>'
    +'<div class="sg">'
-   +'<div class="sc"><div class="sl">Progression <span>&#128200;</span></div><div class="sv">'+(S.user&&S.user!==ADMIN?userP+' pts':'—')+'</div><div class="pb"><div class="pf" style="width:'+prog+'%"></div></div><div class="ss">'+played+' sur '+totalM+' matchs joués</div></div>'
-   +'<div class="sc"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss g">Top : '+top+'</div></div>'
-   +'<div class="sc"><div class="sl">Matchs restants <span>&#128197;</span></div><div class="sv">'+rem+'</div><div class="ss">Préparez vos pronos !</div></div>'
-   +'<div class="sc"><div class="sl">Total Pronos <span>&#127919;</span></div><div class="sv">'+totalPr+'</div><div class="ss">Dans toute la ligue</div></div>'
+   +'<div class="sc t-purple"><div class="sl">Progression <span>&#128200;</span></div><div class="sv">'+(S.user&&S.user!==ADMIN?userP+' pts':'—')+'</div><div class="pb"><div class="pf" style="width:'+prog+'%"></div></div><div class="ss">'+played+' sur '+totalM+' matchs joués</div></div>'
+   +'<div class="sc t-mint"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss g">Top : '+top+'</div></div>'
+   +'<div class="sc t-orange"><div class="sl">Matchs restants <span>&#128197;</span></div><div class="sv">'+rem+'</div><div class="ss">Préparez vos pronos !</div></div>'
+   +'<div class="sc t-blue"><div class="sl">Total Pronos <span>&#127919;</span></div><div class="sv">'+totalPr+'</div><div class="ss">Dans toute la ligue</div></div>'
    +'</div>';
   if(board.length>0){
     var rows='';
@@ -2026,6 +2092,7 @@ function pgStats(){
 function render(){
   try{
     renderNav();
+    renderSbPromo();
     document.body.style.overflowX=(S.page==='tableau')?'auto':'hidden';
     if(S.page!=='matchs'){var _p=document.getElementById('save-bar-portal');if(_p)_p.innerHTML='';}
     if(!GROUP_ID&&sb){if(!isAdmin()){var ng=pgNoGroup();if(ng){document.getElementById('main').innerHTML=ng;return;}}}
@@ -2491,6 +2558,28 @@ async function hSaveAll(){
 }
 function updatePronoCount(){var cnt=document.getElementById('prono-count');if(!cnt)return;var n=0;for(var mi=0;mi<M.length;mi++){var hEl=document.getElementById('ph'+M[mi].id),aEl=document.getElementById('pa'+M[mi].id);if(hEl&&aEl&&!hEl.disabled&&hEl.value!==''&&aEl.value!=='')n++;}cnt.textContent=n;}
 
+function updateThemeButton(){
+  var btn=document.getElementById('theme-toggle-btn');
+  if(!btn)return;
+  var isLight=document.documentElement.getAttribute('data-theme')==='light';
+  btn.innerHTML=isLight?'&#9728;&#65039; Thème clair':'&#127769; Thème sombre';
+}
+function toggleTheme(){
+  var isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){document.documentElement.removeAttribute('data-theme');try{localStorage.setItem('ldc_theme','dark');}catch(e){}}
+  else{document.documentElement.setAttribute('data-theme','light');try{localStorage.setItem('ldc_theme','light');}catch(e){}}
+  updateThemeButton();
+}
+function renderSbPromo(){
+  var el=document.getElementById('sb-promo');
+  if(!el)return;
+  if(!S.user||S.user===ADMIN){el.innerHTML='';return;}
+  el.innerHTML='<div class="sb-promo">'
+    +'<div class="sb-promo-text">Prêts pour la victoire&nbsp;?</div>'
+    +'<div class="sb-promo-sub">Faites vos pronos et montez au sommet du classement&nbsp;!</div>'
+    +'<button class="sb-promo-btn" onclick="go(\'matchs\')">&#9917; Faire mes pronos</button>'
+    +'</div>';
+}
 function logoClick(){
   logoClicks++;
   if(logoTimer)clearTimeout(logoTimer);
@@ -2728,6 +2817,7 @@ document.getElementById('ov').addEventListener('click',function(){document.getEl
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});if('caches' in window)caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k);});});}
 
 async function init(){
+  updateThemeButton();
   document.getElementById('main').innerHTML='<div class="loading-wrap"><div class="spinner"></div></div>';
   if(!initSB()){render();return;}
   try{await loadAll();}catch(e){console.error('loadAll:',e);toast('Erreur: '+e.message,'err');}
