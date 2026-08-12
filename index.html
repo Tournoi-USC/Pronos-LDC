@@ -44,25 +44,28 @@ body{overflow-x:hidden}
   --bdr:#1e2a3a;
   --grn:#22c55e;
   --red:#ef4444;
-  --acc-purple:rgba(139,92,246,.12);--acc-purple-tx:#8b5cf6;
-  --acc-mint:rgba(16,185,129,.12);--acc-mint-tx:#10b981;
-  --acc-orange:rgba(249,115,22,.12);--acc-orange-tx:#f97316;
-  --acc-blue:rgba(37,99,235,.12);--acc-blue-tx:#2563eb;
+  --acc-purple:rgba(139,92,246,.24);--acc-purple-tx:#a78bfa;
+  --acc-mint:rgba(16,185,129,.22);--acc-mint-tx:#34d399;
+  --acc-orange:rgba(249,115,22,.22);--acc-orange-tx:#fb923c;
+  --acc-blue:rgba(37,99,235,.24);--acc-blue-tx:#60a5fa;
   --sw:260px;--ban:0px
 }
 html[data-theme="light"]{
-  --bg:#f4f6fb;
+  --bg:#eef1f8;
   --card:#ffffff;
   --nav:#ffffff;
-  --txt:#1e2433;
-  --muted:#6b7690;
-  --bdr:#e6e9f2;
-  --acc-purple:#efe9ff;
-  --acc-mint:#e4f9f0;
-  --acc-orange:#fff2e4;
-  --acc-blue:#e9f0ff;
+  --txt:#1a2035;
+  --muted:#5c667e;
+  --bdr:#dde3f0;
+  --acc-purple:#e4dbff;--acc-purple-tx:#7c3aed;
+  --acc-mint:#c8f5e4;--acc-mint-tx:#059669;
+  --acc-orange:#ffe2c2;--acc-orange-tx:#ea580c;
+  --acc-blue:#d6e6ff;--acc-blue-tx:#1d4ed8;
 }
-body{font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban)}
+body{
+font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);
+background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('images/stadeballon.webp') center center / cover no-repeat fixed;
+display:flex;min-height:100vh;padding-top:var(--ban)}
 input,button,select,textarea{font-family:inherit}
 .admin-banner{position:fixed;top:0;left:0;right:0;height:32px;background:var(--gold);color:#fff;font-size:.78rem;font-weight:800;display:none;align-items:center;justify-content:center;z-index:400;gap:8px}
 .admin-banner.on{display:flex}
@@ -85,16 +88,16 @@ input,button,select,textarea{font-family:inherit}
 .main{margin-left:var(--sw);flex:1;padding:32px;padding-bottom:80px;min-height:100vh}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:24px}
 .sc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px}
-.sc.t-purple{background:var(--acc-purple)}
-.sc.t-mint{background:var(--acc-mint)}
-.sc.t-orange{background:var(--acc-orange)}
-.sc.t-blue{background:var(--acc-blue)}
+.sc.t-purple{background:rgba(139,92,246,.38);color:var(--acc-purple-tx)}
+.sc.t-mint{background:rgba(16,185,129,.38);color:var(--acc-mint-tx)}
+.sc.t-orange{background:rgba(249,115,22,.38);color:var(--acc-orange-tx)}
+.sc.t-blue{background:rgba(37,99,235,.38);color:var(--acc-blue-tx)}
 .sl{color:var(--muted);font-size:.82rem;display:flex;align-items:center;justify-content:space-between}
 .sl span{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.t-purple .sl span{background:rgba(139,92,246,.18);color:var(--acc-purple-tx)}
-.t-mint .sl span{background:rgba(16,185,129,.18);color:var(--acc-mint-tx)}
-.t-orange .sl span{background:rgba(249,115,22,.18);color:var(--acc-orange-tx)}
-.t-blue .sl span{background:rgba(37,99,235,.18);color:var(--acc-blue-tx)}
+.t-purple .sl span{background:rgba(139,92,246,.8);color:var(--acc-purple-tx)}
+.t-mint .sl span{background:rgba(16,185,129,.8);color:var(--acc-mint-tx)}
+.t-orange .sl span{background:rgba(249,115,22,.8);color:var(--acc-orange-tx)}
+.t-blue .sl span{background:rgba(37,99,235,.8);color:var(--acc-blue-tx)}
 .sv{font-size:1.9rem;font-weight:800;margin-top:8px}
 .ss{color:var(--muted);font-size:.78rem;margin-top:4px}
 .ss.g{color:var(--gold)}
@@ -102,12 +105,13 @@ input,button,select,textarea{font-family:inherit}
 .pf{height:100%;background:var(--gold);border-radius:2px}
 .pt{font-size:2.5rem;font-weight:900;text-transform:uppercase;letter-spacing:-.5px}
 .psub{color:var(--muted);margin-top:6px;font-size:.88rem}
-.htag{color:var(--gold);font-size:.83rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.htitle{font-size:2.8rem;font-weight:900;line-height:1.05}
-.hsub{color:var(--muted);margin-top:10px;max-width:520px;line-height:1.6}
-.hhead{position:relative}
-.hillus{position:absolute;top:-10px;right:0;width:220px;height:220px;pointer-events:none;opacity:.9}
-@media(max-width:1100px){.hillus{display:none}}
+.htag{color:#a8c4ff;font-size:.83rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;position:relative;z-index:1}
+.htitle{font-size:2.8rem;font-weight:900;line-height:1.05;background:linear-gradient(100deg,#6fa0ff 10%,#c9d9ff 50%,#ffffff 90%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block;position:relative;z-index:1}
+.hsub{color:#c3cee0;margin-top:10px;max-width:520px;line-height:1.6;position:relative;z-index:1}
+.hhead{position:relative;overflow:hidden;border-radius:18px;padding:30px 28px 28px;margin-bottom:4px;background:transparent; }
+.hhead::before{}
+.hillus{position:absolute;top:14px;right:4px;width:320px;height:auto;pointer-events:none;filter:drop-shadow(0 8px 20px rgba(37,99,235,.4));z-index:1}
+@media(max-width:1100px){.hillus{display:none!important}}
 .sec-title{font-size:.85rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;margin-top:28px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
 .tb{padding:8px 14px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);cursor:pointer;font-size:.78rem;font-weight:600}
@@ -116,7 +120,7 @@ input,button,select,textarea{font-family:inherit}
 .gb{min-width:36px;height:36px;padding:0 10px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);cursor:pointer;font-size:.8rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .gb.on{background:var(--gold);color:#fff;border-color:var(--gold)}
 .mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-top:16px}
-.mc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:16px;transition:border-color .2s}
+.mc{background: color-mix(in srgb, var(--card) 50%, transparent);;border:1px solid var(--bdr);border-radius:12px;padding:16px;transition:border-color .2s}
 .mc.hp{border-left:3px solid var(--gold)}
 .mc.fin{border-left:3px solid var(--grn)}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:.73rem;color:var(--muted)}
@@ -272,7 +276,7 @@ input,button,select,textarea{font-family:inherit}
   position:sticky;
   top:var(--ban);
   z-index:50;
-  background:var(--bg);
+  background: color-mix(in srgb, var(--bg) 0%, transparent);
   padding:8px 0 10px;
   margin-bottom:4px;
   border-bottom:1px solid var(--bdr);
@@ -370,8 +374,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.2.0';
-var BUILD   = '20/07/2026';
+var VERSION = '2.3.0';
+var BUILD   = '08/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -943,34 +947,22 @@ function pgAccueil(){
     var diff=matchKickoff(nextM.dt,nextM.ti)-now;
     var dh=Math.floor(diff/3600000),dm=Math.floor((diff%3600000)/60000);
     var dLabel=dh>24?Math.floor(dh/24)+'j '+(dh%24)+'h':dh+'h'+dm+'min';
-    nextBlock='<div style="margin-top:14px;background:rgba(26,86,219,.08);border:1px solid rgba(26,86,219,.2);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
+    nextBlock='<div style="position:relative;z-index:1;margin-top:14px;background:rgba(10,16,32,.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
       +'<span style="font-size:1.2rem">&#9201;</span>'
-      +'<div><div style="font-size:.75rem;color:var(--muted)">Prochain match</div>'
-      +'<div style="font-weight:700;font-size:.9rem">'+nextM.h+' vs '+nextM.a+'</div>'
-      +'<div style="font-size:.72rem;color:var(--gold)">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
+      +'<div><div style="font-size:.75rem;color:#c3cee0">Prochain match</div>'
+      +'<div style="font-weight:700;font-size:.9rem;color:#fff">'+nextM.h+' vs '+nextM.a+'</div>'
+      +'<div style="font-size:.72rem;color:#8fb3ff">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
   }
-  var illus='<svg class="hillus" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">'
-    +'<rect x="8" y="14" width="15" height="15" rx="4" fill="var(--acc-orange-tx)" opacity=".55" transform="rotate(15 16 22)"/>'
-    +'<circle cx="202" cy="38" r="7" fill="var(--acc-mint-tx)" opacity=".55"/>'
-    +'<rect x="184" y="148" width="13" height="13" rx="3" fill="var(--acc-purple-tx)" opacity=".55" transform="rotate(-20 191 155)"/>'
-    +'<circle cx="18" cy="178" r="5" fill="var(--gold)" opacity=".45"/>'
-    +'<rect x="30" y="185" width="10" height="10" rx="3" fill="var(--acc-blue-tx)" opacity=".45" transform="rotate(10 35 190)"/>'
-    +'<circle cx="110" cy="112" r="68" fill="var(--card)" stroke="var(--bdr)" stroke-width="2"/>'
-    +'<g fill="none" stroke="var(--txt)" stroke-width="1.4" opacity=".3">'
-    +'<circle cx="110" cy="112" r="68"/>'
-    +'<path d="M110 44 L110 180 M42 112 L178 112 M60 60 L160 164 M160 60 L60 164"/>'
-    +'</g>'
-    +'<polygon points="110,88 126,99 120,118 100,118 94,99" fill="var(--txt)" opacity=".85"/>'
-    +'</svg>';
+  var illus='<img class="hillus"  alt="" loading="lazy">';
   var h='<div class="hhead">'+illus+'<div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
-   +(currentGroupName()?'<div style="font-size:.78rem;color:var(--gold);font-weight:600;margin-bottom:4px">&#128101; '+currentGroupName()+'</div>':'')
-   +'<div class="htitle">À VOS PRONOS&nbsp;!</div>'
+   +(currentGroupName()?'<div style="position:relative;z-index:1;font-size:.78rem;color:#a8c4ff;font-weight:600;margin-bottom:4px">&#128101; '+currentGroupName()+'</div>':'')
+   +'<div class="htitle">À VOS PRONOS&nbsp;!<svg width="26" height="26" viewBox="0 0 26 26" style="display:inline-block;vertical-align:top;margin-left:4px"><path d="M13 2 C14 8 15 11 22 13 C15 15 14 18 13 24 C12 18 11 15 4 13 C11 11 12 8 13 2 Z" fill="var(--gold)" opacity=".85"/></svg></div>'
    +nextBlock
-   +(currentGroupName()?'<div style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.4);border-radius:20px;padding:4px 14px;font-size:.8rem;font-weight:700;color:var(--gold)">&#128101; Groupe : '+currentGroupName()+'</div>':'')
+   +(currentGroupName()?'<div style="position:relative;z-index:1;margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(26,86,219,.25);border:1px solid rgba(143,179,255,.5);border-radius:20px;padding:4px 14px;font-size:.8rem;font-weight:700;color:#c9d9ff">&#128101; Groupe : '+currentGroupName()+'</div>':'')
    +'<p class="hsub">36 clubs. 189 matchs. Une seule finale. Pronostiquez chaque rencontre et montez au sommet du classement.</p></div>'
    +'<div class="sg">'
    +'<div class="sc t-purple"><div class="sl">Progression <span>&#128200;</span></div><div class="sv">'+(S.user&&S.user!==ADMIN?userP+' pts':'—')+'</div><div class="pb"><div class="pf" style="width:'+prog+'%"></div></div><div class="ss">'+played+' sur '+totalM+' matchs joués</div></div>'
-   +'<div class="sc t-mint"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss g">Top : '+top+'</div></div>'
+   +'<div class="sc t-mint"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss">Top : '+top+'</div></div>'
    +'<div class="sc t-orange"><div class="sl">Matchs restants <span>&#128197;</span></div><div class="sv">'+rem+'</div><div class="ss">Préparez vos pronos !</div></div>'
    +'<div class="sc t-blue"><div class="sl">Total Pronos <span>&#127919;</span></div><div class="sv">'+totalPr+'</div><div class="ss">Dans toute la ligue</div></div>'
    +'</div>';
@@ -2574,10 +2566,16 @@ function renderSbPromo(){
   var el=document.getElementById('sb-promo');
   if(!el)return;
   if(!S.user||S.user===ADMIN){el.innerHTML='';return;}
-  el.innerHTML='<div class="sb-promo">'
+  var trophy='<div style="position:absolute;bottom:-8px;right:-4px;width:78px;height:78px;pointer-events:none;background:radial-gradient(circle,rgba(59,130,246,.45) 0%,rgba(59,130,246,0) 70%)">'
+    +'<img src="images/trophy.webp" alt="" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))">'
+    +'</div>';
+  el.innerHTML='<div class="sb-promo" style="position:relative;overflow:hidden">'
+    +'<div style="position:relative;z-index:1;max-width:68%">'
     +'<div class="sb-promo-text">Prêts pour la victoire&nbsp;?</div>'
     +'<div class="sb-promo-sub">Faites vos pronos et montez au sommet du classement&nbsp;!</div>'
     +'<button class="sb-promo-btn" onclick="go(\'matchs\')">&#9917; Faire mes pronos</button>'
+    +'</div>'
+    +trophy
     +'</div>';
 }
 function logoClick(){
