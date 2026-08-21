@@ -62,10 +62,11 @@ html[data-theme="light"]{
   --acc-orange:#ffe2c2;--acc-orange-tx:#ea580c;
   --acc-blue:#d6e6ff;--acc-blue-tx:#1d4ed8;
 }
-body{
-font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;background:var(--bg);color:var(--txt);
-background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('images/stadeballon.webp') center center / cover no-repeat fixed;
-display:flex;min-height:100vh;padding-top:var(--ban)}
+body{font-family:'Exo 2',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:600;color:var(--txt);display:flex;min-height:100vh;padding-top:var(--ban);
+  background-color:var(--bg);
+  background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('images/stadium-ball.webp') center center / cover no-repeat fixed;
+  background-size:cover;background-position:center top;background-attachment:fixed;background-repeat:no-repeat}
+html[data-theme="light"] body{background-image:linear-gradient(rgba(238,241,248,.94),rgba(238,241,248,.94)),url('images/stadium-ball.webp')}
 input,button,select,textarea{font-family:inherit}
 .admin-banner{position:fixed;top:0;left:0;right:0;height:32px;background:var(--gold);color:#fff;font-size:.78rem;font-weight:800;display:none;align-items:center;justify-content:center;z-index:400;gap:8px}
 .admin-banner.on{display:flex}
@@ -88,16 +89,22 @@ input,button,select,textarea{font-family:inherit}
 .main{margin-left:var(--sw);flex:1;padding:32px;padding-bottom:80px;min-height:100vh}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:24px}
 .sc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px}
-.sc.t-purple{background:rgba(139,92,246,.38);color:var(--acc-purple-tx)}
-.sc.t-mint{background:rgba(16,185,129,.38);color:var(--acc-mint-tx)}
-.sc.t-orange{background:rgba(249,115,22,.38);color:var(--acc-orange-tx)}
-.sc.t-blue{background:rgba(37,99,235,.38);color:var(--acc-blue-tx)}
+.sc.t-purple{background:var(--acc-purple)}
+.sc.t-mint{background:var(--acc-mint)}
+.sc.t-orange{background:var(--acc-orange)}
+.sc.t-blue{background:var(--acc-blue)}
 .sl{color:var(--muted);font-size:.82rem;display:flex;align-items:center;justify-content:space-between}
 .sl span{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.t-purple .sl span{background:rgba(139,92,246,.8);color:var(--acc-purple-tx)}
-.t-mint .sl span{background:rgba(16,185,129,.8);color:var(--acc-mint-tx)}
-.t-orange .sl span{background:rgba(249,115,22,.8);color:var(--acc-orange-tx)}
-.t-blue .sl span{background:rgba(37,99,235,.8);color:var(--acc-blue-tx)}
+.t-purple .sl span{background:rgba(255,255,255,.15);color:var(--acc-purple-tx)}
+.t-mint .sl span{background:rgba(255,255,255,.15);color:var(--acc-mint-tx)}
+.t-orange .sl span{background:rgba(255,255,255,.15);color:var(--acc-orange-tx)}
+.t-blue .sl span{background:rgba(255,255,255,.15);color:var(--acc-blue-tx)}
+.t-purple .sv{color:var(--acc-purple-tx)}
+.t-mint .sv{color:var(--acc-mint-tx)}
+.t-orange .sv{color:var(--acc-orange-tx)}
+.t-blue .sv{color:var(--acc-blue-tx)}
+html:not([data-theme="light"]) .t-purple .sl,html:not([data-theme="light"]) .t-mint .sl,html:not([data-theme="light"]) .t-orange .sl,html:not([data-theme="light"]) .t-blue .sl{color:rgba(255,255,255,.65)}
+html:not([data-theme="light"]) .t-purple .ss,html:not([data-theme="light"]) .t-mint .ss,html:not([data-theme="light"]) .t-orange .ss,html:not([data-theme="light"]) .t-blue .ss{color:rgba(255,255,255,.55)}
 .sv{font-size:1.9rem;font-weight:800;margin-top:8px}
 .ss{color:var(--muted);font-size:.78rem;margin-top:4px}
 .ss.g{color:var(--gold)}
@@ -105,13 +112,10 @@ input,button,select,textarea{font-family:inherit}
 .pf{height:100%;background:var(--gold);border-radius:2px}
 .pt{font-size:2.5rem;font-weight:900;text-transform:uppercase;letter-spacing:-.5px}
 .psub{color:var(--muted);margin-top:6px;font-size:.88rem}
-.htag{color:#a8c4ff;font-size:.83rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;position:relative;z-index:1}
-.htitle{font-size:2.8rem;font-weight:900;line-height:1.05;background:linear-gradient(100deg,#6fa0ff 10%,#c9d9ff 50%,#ffffff 90%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block;position:relative;z-index:1}
-.hsub{color:#c3cee0;margin-top:10px;max-width:520px;line-height:1.6;position:relative;z-index:1}
-.hhead{position:relative;overflow:hidden;border-radius:18px;padding:30px 28px 28px;margin-bottom:4px;background:transparent; }
-.hhead::before{}
-.hillus{position:absolute;top:14px;right:4px;width:320px;height:auto;pointer-events:none;filter:drop-shadow(0 8px 20px rgba(37,99,235,.4));z-index:1}
-@media(max-width:1100px){.hillus{display:none!important}}
+.htag{color:var(--gold);font-size:.83rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.htitle{font-size:2.8rem;font-weight:900;line-height:1.05;background:linear-gradient(100deg,var(--gold) 10%,#8fb3ff 55%,var(--txt) 90%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.hsub{color:var(--muted);margin-top:10px;max-width:520px;line-height:1.6}
+.hhead{position:relative}
 .sec-title{font-size:.85rem;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;margin-top:28px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
 .tb{padding:8px 14px;border-radius:6px;border:1px solid var(--bdr);background:var(--card);color:var(--muted);cursor:pointer;font-size:.78rem;font-weight:600}
@@ -276,7 +280,7 @@ input,button,select,textarea{font-family:inherit}
   position:sticky;
   top:var(--ban);
   z-index:50;
-  background: color-mix(in srgb, var(--bg) 0%, transparent);
+  background:var(--bg);
   padding:8px 0 10px;
   margin-bottom:4px;
   border-bottom:1px solid var(--bdr);
@@ -305,9 +309,6 @@ input,button,select,textarea{font-family:inherit}
     </div>
     <span id="ver-badge" style="font-size:.6rem;opacity:.45;font-weight:400;margin-top:2px">v1.3.5</span>
   </div>
-  <!--<div style="padding:10px 20px 4px">
-    <button class="theme-toggle" id="theme-toggle-btn" onclick="event.stopPropagation();toggleTheme()" title="Changer de thème"></button>
-  </div>-->
   <div id="grp-chip" style="padding:4px 20px 8px;font-size:.72rem;color:var(--gold);opacity:.8"></div>
   <div class="sb-nav" id="snav"></div>
   <div id="sb-promo"></div>
@@ -374,8 +375,8 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.3.0';
-var BUILD   = '08/08/2026';
+var VERSION = '2.4.0';
+var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
 document.title='Prono LDC 26/27 v'+VERSION;
@@ -947,22 +948,21 @@ function pgAccueil(){
     var diff=matchKickoff(nextM.dt,nextM.ti)-now;
     var dh=Math.floor(diff/3600000),dm=Math.floor((diff%3600000)/60000);
     var dLabel=dh>24?Math.floor(dh/24)+'j '+(dh%24)+'h':dh+'h'+dm+'min';
-    nextBlock='<div style="position:relative;z-index:1;margin-top:14px;background:rgba(10,16,32,.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
+    nextBlock='<div style="margin-top:14px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
       +'<span style="font-size:1.2rem">&#9201;</span>'
-      +'<div><div style="font-size:.75rem;color:#c3cee0">Prochain match</div>'
-      +'<div style="font-weight:700;font-size:.9rem;color:#fff">'+nextM.h+' vs '+nextM.a+'</div>'
-      +'<div style="font-size:.72rem;color:#8fb3ff">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
+      +'<div><div style="font-size:.75rem;color:var(--muted)">Prochain match</div>'
+      +'<div style="font-weight:700;font-size:.9rem">'+nextM.h+' vs '+nextM.a+'</div>'
+      +'<div style="font-size:.72rem;color:var(--gold)">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
   }
-  var illus='<img class="hillus"  alt="" loading="lazy">';
-  var h='<div class="hhead">'+illus+'<div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
-   +(currentGroupName()?'<div style="position:relative;z-index:1;font-size:.78rem;color:#a8c4ff;font-weight:600;margin-bottom:4px">&#128101; '+currentGroupName()+'</div>':'')
+  var h='<div class="hhead"><div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
+   +(currentGroupName()?'<div style="font-size:.78rem;color:var(--gold);font-weight:600;margin-bottom:4px">&#128101; '+currentGroupName()+'</div>':'')
    +'<div class="htitle">À VOS PRONOS&nbsp;!<svg width="26" height="26" viewBox="0 0 26 26" style="display:inline-block;vertical-align:top;margin-left:4px"><path d="M13 2 C14 8 15 11 22 13 C15 15 14 18 13 24 C12 18 11 15 4 13 C11 11 12 8 13 2 Z" fill="var(--gold)" opacity=".85"/></svg></div>'
    +nextBlock
-   +(currentGroupName()?'<div style="position:relative;z-index:1;margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(26,86,219,.25);border:1px solid rgba(143,179,255,.5);border-radius:20px;padding:4px 14px;font-size:.8rem;font-weight:700;color:#c9d9ff">&#128101; Groupe : '+currentGroupName()+'</div>':'')
+   +(currentGroupName()?'<div style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(26,86,219,.15);border:1px solid rgba(26,86,219,.4);border-radius:20px;padding:4px 14px;font-size:.8rem;font-weight:700;color:var(--gold)">&#128101; Groupe : '+currentGroupName()+'</div>':'')
    +'<p class="hsub">36 clubs. 189 matchs. Une seule finale. Pronostiquez chaque rencontre et montez au sommet du classement.</p></div>'
    +'<div class="sg">'
    +'<div class="sc t-purple"><div class="sl">Progression <span>&#128200;</span></div><div class="sv">'+(S.user&&S.user!==ADMIN?userP+' pts':'—')+'</div><div class="pb"><div class="pf" style="width:'+prog+'%"></div></div><div class="ss">'+played+' sur '+totalM+' matchs joués</div></div>'
-   +'<div class="sc t-mint"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss">Top : '+top+'</div></div>'
+   +'<div class="sc t-mint"><div class="sl">Participants <span>&#128101;</span></div><div class="sv">'+nu+'</div><div class="ss g">Top : '+top+'</div></div>'
    +'<div class="sc t-orange"><div class="sl">Matchs restants <span>&#128197;</span></div><div class="sv">'+rem+'</div><div class="ss">Préparez vos pronos !</div></div>'
    +'<div class="sc t-blue"><div class="sl">Total Pronos <span>&#127919;</span></div><div class="sv">'+totalPr+'</div><div class="ss">Dans toute la ligue</div></div>'
    +'</div>';
@@ -1330,7 +1330,7 @@ function pgProfil(){
     +'<button class="tb'+(S.profTab==='jokers'?' on':'')+'" onclick="S.profTab=\'jokers\';render();if(SESSION_PW)hRefreshMyJokers();">🃏 Mes jokers</button>'
     +'</div>';
   var tabBody=(S.profTab==='jokers')?renderMyJokers():('<h3 style="font-size:.95rem;font-weight:800;margin-bottom:12px">MES PRONOSTICS</h3>'+pronosH);
-  return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
+  return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="theme-toggle" id="theme-toggle-btn" style="width:auto" onclick="toggleTheme()" title="Changer de thème"></button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
     +avEditBlock
     +cpwBlock
     +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+fmtPts(st.p)+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
@@ -2094,6 +2094,7 @@ function render(){
     var pages={accueil:pgAccueil,matchs:pgMatchs,classement:pgClass,ligue:pgLigue,tableau:pgTableau,profil:pgProfil,reglement:pgReglement,stats:pgStats};
     var fn=pages[S.page]||pgAccueil;
     document.getElementById('main').innerHTML=fn();
+    updateThemeButton();
     if(S.page==='matchs')setTimeout(scrollToFirstUnscored,80);
   }catch(e){
     console.error('render():',e);
