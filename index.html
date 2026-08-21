@@ -853,6 +853,26 @@ async function hDeleteConfrontation(cfId){
   toast('Confrontation supprimée');render();
 }
 
+async function hAddGroupToConfrontation(cfId){
+  var sel=document.getElementById('cf-add-grp-'+cfId);
+  var gid=sel?sel.value:'';
+  if(!gid){toast('Choisissez une équipe à ajouter','err');return;}
+  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
+  var r=await secureCall('adminAddGroupToConfrontation',{pin:SESSION_PIN,confrontationId:cfId,groupId:gid});
+  if(!r.ok){toast(r.msg||'Erreur ajout équipe','err');return;}
+  DB.confrontationGroups.push(r.link||{confrontation_id:cfId,group_id:gid});
+  toast('Équipe ajoutée ✓');render();
+}
+
+async function hRemoveGroupFromConfrontation(cfId,gid){
+  if(!confirm('Retirer cette équipe de la confrontation ?'))return;
+  if(!SESSION_PIN){toast('Mode admin non activé','err');return;}
+  var r=await secureCall('adminRemoveGroupFromConfrontation',{pin:SESSION_PIN,confrontationId:cfId,groupId:gid});
+  if(!r.ok){toast(r.msg||'Erreur','err');return;}
+  DB.confrontationGroups=DB.confrontationGroups.filter(function(cg){return !(cg.confrontation_id===cfId&&cg.group_id===gid);});
+  toast('Équipe retirée');render();
+}
+
 function pgSetup(){
   return '<div class="setup-box">'
    +'<div style="font-size:3rem;margin-bottom:16px">&#9881;</div>'
@@ -1786,10 +1806,31 @@ function pgConfrontations(){
       for(var ci=0;ci<DB.confrontations.length;ci++){
         var cf=DB.confrontations[ci];
         var cfGids=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===cf.id;}).map(function(cg){return cg.group_id;});
-        var cfGNames=cfGids.map(function(gid){for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid)return DB.groups[j].name;return gid;}).join(' · ');
-        existList+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
-          +'<div><strong>'+cf.name+'</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">'+cfGNames+'</div></div>'
+        var cfGBadges=cfGids.map(function(gid){
+          var gname=gid;
+          for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===gid){gname=DB.groups[j].name;break;}
+          return '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(26,86,219,.12);border:1px solid rgba(26,86,219,.3);border-radius:14px;padding:2px 8px 2px 10px;font-size:.72rem;margin:2px 4px 2px 0">'
+            +gname
+            +'<span onclick="hRemoveGroupFromConfrontation(\''+cf.id+'\',\''+gid+'\')" style="cursor:pointer;color:var(--red);font-weight:800;padding:0 2px" title="Retirer cette équipe">&times;</span>'
+            +'</span>';
+        }).join('');
+        var availGroups=DB.groups.filter(function(g){return cfGids.indexOf(g.id)===-1;});
+        var addRow='';
+        if(availGroups.length){
+          var opts='<option value="">— Ajouter une équipe —</option>';
+          availGroups.forEach(function(g){opts+='<option value="'+g.id+'">'+g.name+'</option>';});
+          addRow='<div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">'
+            +'<select class="fi" id="cf-add-grp-'+cf.id+'" style="flex:1;min-width:140px;font-size:.78rem;padding:6px 8px">'+opts+'</select>'
+            +'<button class="rsb" onclick="hAddGroupToConfrontation(\''+cf.id+'\')" style="white-space:nowrap">+ Ajouter</button>'
+            +'</div>';
+        }
+        existList+='<div style="background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;margin-bottom:6px">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+          +'<strong>'+cf.name+'</strong>'
           +'<button class="rsb" onclick="hDeleteConfrontation(\''+cf.id+'\')" style="color:var(--red)">🗑 Supprimer</button>'
+          +'</div>'
+          +'<div style="margin-top:6px">'+cfGBadges+'</div>'
+          +addRow
           +'</div>';
       }
     }else{
