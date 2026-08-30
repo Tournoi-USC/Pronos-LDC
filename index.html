@@ -386,7 +386,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.4.0';
+var VERSION = '2.4.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -462,6 +462,23 @@ var BRACKET_NEXT = {
   // À compléter après le tirage au sort des barrages (~déc. 2026 / jan. 2027)
   // Exemple : 153:{next:161,side:'h'}, 154:{next:161,side:'a'}, ...
 };
+
+/* ═══ CHAPEAUX phase de ligue 2026/27 (fixes pour toute la saison, tirage du 27/08/2026) ═══ */
+var CHAPEAUX = {
+  'Paris Saint-Germain':1,'Bayern München':1,'Real Madrid':1,'Liverpool':1,'Inter':1,'Manchester City':1,'Arsenal':1,'FC Barcelona':1,'Atlético de Madrid':1,
+  'Borussia Dortmund':2,'Roma':2,'Sporting CP':2,'Aston Villa':2,'Porto':2,'Manchester United':2,'Club Brugge':2,'Real Betis':2,'PSV Eindhoven':2,
+  'Feyenoord':3,'Lille':3,'Fenerbahçe':3,'Bodø/Glimt':3,'Napoli':3,'Leipzig':3,'Villarreal':3,'Shakhtar Donetsk':3,'Galatasaray':3,
+  'Slavia Praha':4,'Stuttgart':4,'AEK Athens':4,'Slovan Bratislava':4,'LASK':4,'Como':4,'Lens':4,'Viking':4,'Sabah':4
+};
+var CLUBS_FR = ['Paris Saint-Germain','Lille','Lens'];
+function chapeauOf(team){return CHAPEAUX[team]||5;} // 5 = fallback (équipe TBD ou inconnue)
+// Score de "tête d'affiche" : plus petit = plus prestigieux.
+// Priorité 1 : au moins un club français dans le match (gros bonus, -100).
+// Priorité 2 (ou seule règle si aucun club FR) : somme des 2 chapeaux, la plus basse gagne.
+function matchAffiche(m){
+  var isFr=CLUBS_FR.indexOf(m.h)>=0||CLUBS_FR.indexOf(m.a)>=0;
+  return (isFr?-100:0)+chapeauOf(m.h)+chapeauOf(m.a);
+}
 
 /* ═══ UTILITAIRES ═══════════════════════════════════════════════ */
 function hsh(s){var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h)^s.charCodeAt(i);return(h>>>0).toString(16);}
@@ -972,8 +989,13 @@ function pgAccueil(){
   var top=board[0]?(board[0].ps+' ('+board[0].p+' pts)'):'-';
   var userP=0,prog=0;
   if(S.user&&S.user!==ADMIN){var st0=pts(S.user);userP=st0.p;prog=played>0?Math.round(st0.pl/Math.max(played,1)*100):0;}
-  var now=new Date(),nextM=null;
-  for(var ni=0;ni<M.length;ni++){var km=new Date(matchKickoff(M[ni].dt,M[ni].ti));if(km>now&&(!nextM||km<new Date(matchKickoff(nextM.dt,nextM.ti))))nextM=M[ni];}
+  var now=new Date(),nextM=null,nextKO=null;
+  for(var ni=0;ni<M.length;ni++){
+    var km=matchKickoff(M[ni].dt,M[ni].ti);
+    if(km<=now)continue;
+    if(!nextM||km<nextKO){nextM=M[ni];nextKO=km;}
+    else if(km===nextKO&&matchAffiche(M[ni])<matchAffiche(nextM)){nextM=M[ni];} // égalité d'horaire → tête d'affiche
+  }
   var nextBlock='';
   if(nextM){
     var diff=matchKickoff(nextM.dt,nextM.ti)-now;
@@ -1164,6 +1186,10 @@ function renderLogos(){
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(matchKickoff(m.dt,m.ti)),started=(new Date())>=dt;
+  // Match sans doute terminé (>2h15 après le coup d'envoi, marge pour prolongations/retards)
+  // mais toujours sans score en base : le score arrivera avec le prochain passage du cron
+  // sync-scores (toutes les 2h) — on prévient l'utilisateur pour éviter toute confusion.
+  var pendingSync=started&&!res&&(new Date()-dt)>=135*60000;
   var ptb=(S.user&&S.user!==ADMIN&&pn&&res)?ptBadge(m.id,S.user):null;
   var dateStr=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' &middot; '+m.ti;
   var scoreBlock=res?('<div class="sd"><div class="sb2">'+res.h+'</div><span style="color:var(--muted);margin:0 2px">-</span><div class="sb2">'+res.a+'</div></div>'):'<div style="color:var(--muted);font-size:1.4rem;font-weight:900">VS</div>';
@@ -1245,6 +1271,7 @@ function cardMatch(m){
 
   return '<div class="mc'+(pn&&S.user!==ADMIN?' hp':'')+(res?' fin':'')+'">'
    +'<div class="mh"><span class="mtag">'+phaseLabel+'Match #'+m.id+'</span><span class="ms'+(res?' fin':'')+'">'+(res?'TERMINÉ':'À VENIR')+'</span></div>'
+   +(pendingSync?'<div style="font-size:.7rem;color:var(--muted);text-align:center;margin:2px 0 4px">&#8987; Résultat en cours de synchro (sous 2h)</div>':'')
    +(isAdmin()
     ? '<div class="mteams">'
       +'<div class="team"><span class="tf"></span><input class="fi team-card-inp" data-mid="'+m.id+'" data-side="h" value="'+m.h+'" placeholder="Domicile" style="margin-top:2px" onchange="hSaveTeamInline(this)"></div>'
@@ -2349,6 +2376,9 @@ function pgReglement(){
 
       // Note matchs non pronostiqués
       +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">⚠️ Un match sans pronostic saisi avant son coup d\'envoi ne rapporte aucun point et n\'est pas comptabilisé dans le classement.</div>'
+
+      // Note délai de synchro des scores
+      +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:8px 0;border-top:1px solid var(--bdr)">&#8987; Les scores officiels sont synchronisés automatiquement, mais pas en temps réel : comptez jusqu\'à 2h après la fin d\'un match avant que le résultat n\'apparaisse sur le site.</div>'
 
     +'</div>';
   return h+tabsH+calculsBody;
