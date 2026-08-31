@@ -36,6 +36,7 @@ body{overflow-x:hidden}
 :root{
   --gold:#1a56db;
   --gold2:#2563eb;
+  --odds:#f59e0b;
   --bg:#0a0f1e;
   --card:#111827;
   --nav:#080d1a;
@@ -51,6 +52,7 @@ body{overflow-x:hidden}
   --sw:260px;--ban:0px
 }
 html[data-theme="light"]{
+  --odds:#1a56db;
   --bg:#eef2fb;
   --card:#ffffff;
   --nav:#ffffff;
@@ -386,7 +388,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.5.0';
+var VERSION = '2.5.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1252,9 +1254,9 @@ function cardMatch(m){
       return '<span style="'+baseStyle+ring+'">'+txt+'</span>';
     };
     oddsBlock='<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 6px;padding:4px 8px;background:rgba(26,86,219,.08);border-radius:6px;font-size:.72rem">'
-      +oddPill('h',m.oh.toFixed(2),'color:var(--gold);font-weight:700')
+      +oddPill('h',m.oh.toFixed(2),'color:var(--odds);font-weight:700')
       +(m.od?oddPill('d','nul '+m.od.toFixed(2),'color:var(--muted)'):'')
-      +oddPill('a',m.oa.toFixed(2),'color:var(--gold);font-weight:700')
+      +oddPill('a',m.oa.toFixed(2),'color:var(--odds);font-weight:700')
       +'</div>';
   }
 
@@ -1599,7 +1601,7 @@ function buildAdminPanel(){
       +'<div id="synce" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
       +'<hr class="hr2">'
       +'<h4 style="margin-bottom:6px">&#128200; Sync cotes</h4>'
-      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Edge Function sync-odds (OddsPapi tournamentId=7, Pinnacle) · Cron 10h et 22h</p>'
+      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Edge Function sync-odds (SharpAPI, league=UEFA Champions League) · Cron 10h et 22h</p>'
       +'<button class="btn-g" onclick="autoFetchOdds()" style="background:#1e3a6e;color:#fff">&#8635; Forcer sync cotes</button>'
       +'<div id="oddse" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
       +'<hr class="hr2">'
@@ -1725,7 +1727,7 @@ function buildAdminPanel(){
       +'<h4 style="margin-bottom:8px">&#128203; Infos Edge Functions</h4>'
       +'<p style="font-size:.75rem;color:var(--muted);line-height:1.6">'
       +'&#128200; <strong>sync-scores</strong> : football-data.org · competition=CL · season=2026<br>'
-      +'&#127917; <strong>sync-odds</strong> : OddsPapi · tournamentId=7 (LDC) · bookmaker=pinnacle<br>'
+      +'&#127917; <strong>sync-odds</strong> : SharpAPI · league=uefa_-_champions_league · bookmakers=draftkings/fanduel<br>'
       +'&#128337; Crons : scores toutes les 2h · cotes 10h et 22h (Paris)</p>';
   }
 
@@ -2406,7 +2408,7 @@ function pgReglement(){
       +'</div>'
 
       // Note côtes
-      +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0">Cotes Pinnacle (OddsPapi) · figées la veille du match</div>'
+      +'<div style="font-size:.72rem;color:var(--muted);text-align:center;padding:4px 0">Cotes DraftKings/FanDuel (SharpAPI) · figées la veille du match</div>'
 
       // TAB
       +'<div style="border-top:1px solid var(--bdr);padding-top:10px">'
