@@ -386,7 +386,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.4.1';
+var VERSION = '2.5.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -471,6 +471,51 @@ var CHAPEAUX = {
   'Slavia Praha':4,'Stuttgart':4,'AEK Athens':4,'Slovan Bratislava':4,'LASK':4,'Como':4,'Lens':4,'Viking':4,'Sabah':4
 };
 var CLUBS_FR = ['Paris Saint-Germain','Lille','Lens'];
+
+/* ═══ ÉCUSSONS (crests football-data.org, un par club, saison 2026/27) ═══ */
+var CRESTS = {
+  'Borussia Dortmund':'https://crests.football-data.org/4.png',
+  'Bayern München':'https://crests.football-data.org/5.png',
+  'Stuttgart':'https://crests.football-data.org/10.png',
+  'Arsenal':'https://crests.football-data.org/57.png',
+  'Aston Villa':'https://crests.football-data.org/58.png',
+  'Liverpool':'https://crests.football-data.org/64.png',
+  'Manchester City':'https://crests.football-data.org/65.png',
+  'Manchester United':'https://crests.football-data.org/66.png',
+  'Atlético de Madrid':'https://crests.football-data.org/78.png',
+  'FC Barcelona':'https://crests.football-data.org/81.png',
+  'Real Madrid':'https://crests.football-data.org/86.png',
+  'Real Betis':'https://crests.football-data.org/90.png',
+  'Villarreal':'https://crests.football-data.org/94.png',
+  'Roma':'https://crests.football-data.org/100.png',
+  'Inter':'https://crests.football-data.org/108.png',
+  'Napoli':'https://crests.football-data.org/113.png',
+  'Sporting CP':'https://crests.football-data.org/498.png',
+  'Porto':'https://crests.football-data.org/503.png',
+  'Lille':'https://crests.football-data.org/521.png',
+  'Paris Saint-Germain':'https://crests.football-data.org/524.png',
+  'Lens':'https://crests.football-data.org/546.png',
+  'Galatasaray':'https://crests.football-data.org/610.png',
+  'Fenerbahçe':'https://crests.football-data.org/613.png',
+  'PSV Eindhoven':'https://crests.football-data.org/674.png',
+  'Feyenoord':'https://crests.football-data.org/675.png',
+  'Leipzig':'https://crests.football-data.org/721.png',
+  'Club Brugge':'https://crests.football-data.org/851.png',
+  'Slavia Praha':'https://crests.football-data.org/930.png',
+  'Shakhtar Donetsk':'https://crests.football-data.org/1887.png',
+  'AEK Athens':'https://crests.football-data.org/1899.png',
+  'LASK':'https://crests.football-data.org/2016.png',
+  'Viking':'https://crests.football-data.org/5720.png',
+  'Bodø/Glimt':'https://crests.football-data.org/5721.png',
+  'Como':'https://crests.football-data.org/7397.png',
+  'Slovan Bratislava':'https://crests.football-data.org/7509.png',
+  'Sabah':'https://crests.football-data.org/10233.png'
+};
+// Renvoie le <span class="tf"> rempli avec l'écusson si connu, vide sinon (équipe TBD)
+function crestTag(team){
+  var url=CRESTS[team];
+  return url?('<img src="'+url+'" alt="" style="height:20px;width:20px;object-fit:contain">'):'';
+}
 function chapeauOf(team){return CHAPEAUX[team]||5;} // 5 = fallback (équipe TBD ou inconnue)
 // Score de "tête d'affiche" : plus petit = plus prestigieux.
 // Priorité 1 : au moins un club français dans le match (gros bonus, -100).
@@ -1004,7 +1049,7 @@ function pgAccueil(){
     nextBlock='<div style="margin-top:14px;background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px 16px;display:inline-flex;align-items:center;gap:10px;cursor:pointer" data-gm="'+nextM.id+'" id="next-match-card">'
       +'<span style="font-size:1.2rem">&#9201;</span>'
       +'<div><div style="font-size:.75rem;color:var(--muted)">Prochain match</div>'
-      +'<div style="font-weight:700;font-size:.9rem">'+nextM.h+' vs '+nextM.a+'</div>'
+      +'<div style="font-weight:700;font-size:.9rem;display:flex;align-items:center;gap:6px">'+crestTag(nextM.h)+nextM.h+' vs '+nextM.a+crestTag(nextM.a)+'</div>'
       +'<div style="font-size:.72rem;color:var(--gold)">dans '+dLabel+' &middot; '+nextM.ph+'</div></div></div>';
   }
   var h='<div class="hhead"><div class="htag">&#9917; UEFA CHAMPIONS LEAGUE 2026/27</div>'
@@ -1274,11 +1319,11 @@ function cardMatch(m){
    +(pendingSync?'<div style="font-size:.7rem;color:var(--muted);text-align:center;margin:2px 0 4px">&#8987; Résultat en cours de synchro (sous 2h)</div>':'')
    +(isAdmin()
     ? '<div class="mteams">'
-      +'<div class="team"><span class="tf"></span><input class="fi team-card-inp" data-mid="'+m.id+'" data-side="h" value="'+m.h+'" placeholder="Domicile" style="margin-top:2px" onchange="hSaveTeamInline(this)"></div>'
+      +'<div class="team"><span class="tf">'+crestTag(m.h)+'</span><input class="fi team-card-inp" data-mid="'+m.id+'" data-side="h" value="'+m.h+'" placeholder="Domicile" style="margin-top:2px" onchange="hSaveTeamInline(this)"></div>'
       +'<div style="text-align:center">'+scoreBlock+'</div>'
-      +'<div class="team" style="text-align:right"><span class="tf"></span><input class="fi team-card-inp" data-mid="'+m.id+'" data-side="a" value="'+m.a+'" placeholder="Extérieur" style="margin-top:2px;text-align:right" onchange="hSaveTeamInline(this)"></div>'
+      +'<div class="team" style="text-align:right"><span class="tf">'+crestTag(m.a)+'</span><input class="fi team-card-inp" data-mid="'+m.id+'" data-side="a" value="'+m.a+'" placeholder="Extérieur" style="margin-top:2px;text-align:right" onchange="hSaveTeamInline(this)"></div>'
       +'</div>'
-    : '<div class="mteams"><div class="team"><span class="tf"></span><div class="tn">'+m.h+'</div></div><div style="text-align:center">'+scoreBlock+'</div><div class="team" style="text-align:right"><span class="tf"></span><div class="tn">'+m.a+'</div></div></div>'
+    : '<div class="mteams"><div class="team"><span class="tf">'+crestTag(m.h)+'</span><div class="tn">'+m.h+'</div></div><div style="text-align:center">'+scoreBlock+'</div><div class="team" style="text-align:right"><span class="tf">'+crestTag(m.a)+'</span><div class="tn">'+m.a+'</div></div></div>'
   )
    +oddsBlock+pronoBlock+adminBlock
    +(res&&!isAdmin()&&S.user?(function(){var ex2=0,okd2=0,ok2=0,no2=0,tot=0;for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===ADMIN)continue;var upn=uPronos(u.pseudo_key)[m.id];if(!upn)continue;tot++;var ub=ptBadge(m.id,u.pseudo_key);if(!ub)continue;if(ub.type==='ex')ex2++;else if(ub.type==='okd')okd2++;else if(ub.type==='ok')ok2++;else no2++;}if(!tot)return '';return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+(ex2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(26,86,219,.2);color:#60a5fa">&#127919; '+ex2+'</span>':'')+(okd2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#8776; '+okd2+'</span>':'')+(ok2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#10003; '+ok2+'</span>':'')+(no2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:var(--bg);color:var(--muted)">&#10007; '+no2+'</span>':'')+'</div>';})():'')
