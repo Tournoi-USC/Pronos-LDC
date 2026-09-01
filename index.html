@@ -388,7 +388,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.5.1';
+var VERSION = '2.5.2';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1601,7 +1601,7 @@ function buildAdminPanel(){
       +'<div id="synce" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
       +'<hr class="hr2">'
       +'<h4 style="margin-bottom:6px">&#128200; Sync cotes</h4>'
-      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Edge Function sync-odds (SharpAPI, league=UEFA Champions League) · Cron 10h et 22h</p>'
+      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Edge Function sync-odds (SharpAPI, league=UEFA Champions League) · Cron toutes les 2h</p>'
       +'<button class="btn-g" onclick="autoFetchOdds()" style="background:#1e3a6e;color:#fff">&#8635; Forcer sync cotes</button>'
       +'<div id="oddse" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
       +'<hr class="hr2">'
@@ -1728,7 +1728,7 @@ function buildAdminPanel(){
       +'<p style="font-size:.75rem;color:var(--muted);line-height:1.6">'
       +'&#128200; <strong>sync-scores</strong> : football-data.org · competition=CL · season=2026<br>'
       +'&#127917; <strong>sync-odds</strong> : SharpAPI · league=uefa_-_champions_league · bookmakers=draftkings/fanduel<br>'
-      +'&#128337; Crons : scores toutes les 2h · cotes 10h et 22h (Paris)</p>';
+      +'&#128337; Crons : scores et cotes toutes les 2h</p>';
   }
 
   return h+'<div class="adm-pan">'+atabs+panelContent+'</div></div>';
