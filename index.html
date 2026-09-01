@@ -388,7 +388,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.5.2';
+var VERSION = '2.6.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -411,14 +411,14 @@ var USERS_SAFE_COLS='id,pseudo_key,pseudo_display,avatar,group_id';
 var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[],assets:{}};
 var sb=null,SB_ERROR='';
 var AVATAR_LIST=['⚽','🥅','🏆','🥇','🥈','🥉','🎽','👟','🧤','🟨','🟥','📣','🏟️','🧣','🦶','🐐','🦁','🦅','🐯','🐺','🦊','🔥','⭐','🚀'];
-var JOKER_ORDER=['parachute','sniper','vague','double','chasseur','tab_specialiste','duel','raid','regicide','visionnaire','pirate','loto'];
+var JOKER_ORDER=['parachute','sniper','vague','double','chasseur','outsider','duel','raid','regicide','visionnaire','pirate','loto'];
 var JOKER_META={
   parachute:{ic:'🛡️',name:'Parachute',desc:'Remonte tes points au minimum "bon résultat" si tu rates ton pronostic.',target:null},
   sniper:{ic:'🥅',name:'Sniper',desc:'Si score exact : bonus de +50% sur les points gagnés.',target:null},
   vague:{ic:'🌊',name:'La Vague',desc:'Si score exact : chaque autre membre de ton groupe reçoit +1 pt.',target:null},
   double:{ic:'⚡',name:'Le Doublé',desc:'Double tes points gagnés sur ce match, quel que soit le résultat.',target:null},
   chasseur:{ic:'🦁',name:'Chasseur de Cotes',desc:'Si bon résultat+ : bonus égal à (côte du vainqueur × 2)% de tes points.',target:null},
-  tab_specialiste:{ic:'🔄',name:'Spécialiste TAB',desc:'Triple tes points sur un match KO, uniquement s\'il va aux tirs au but.',target:null},
+  outsider:{ic:'🐺',name:'L\'Outsider',desc:'Bonus sur tes points gagnés, basé sur le % de joueurs (tout le site) qui se sont trompés sur ce match : moitié de ce % si bon résultat, ce % en entier si score exact. Rien si le prono est raté.',target:null},
   duel:{ic:'⚔️',name:'Le Duel',desc:'Cible un joueur d\'un groupe adverse en confrontation : si tu fais mieux que lui, tu gagnes la différence de points.',target:'user'},
   raid:{ic:'🌪️',name:'Le Raid',desc:'Ton groupe vs le groupe adverse sur ce match : si le total de ton groupe l\'emporte, chacun reçoit +1 pt.',target:'group'},
   regicide:{ic:'👑',name:'Le Régicide',desc:'Cible le leader du classement (hors ton groupe) : s\'il rate son pronostic, tu gagnes 2× la côte du vainqueur.',target:'user'},
