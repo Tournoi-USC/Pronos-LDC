@@ -388,7 +388,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.6.0';
+var VERSION = '2.8.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -396,7 +396,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:''};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:null};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -525,6 +525,42 @@ function chapeauOf(team){return CHAPEAUX[team]||5;} // 5 = fallback (équipe TBD
 function matchAffiche(m){
   var isFr=CLUBS_FR.indexOf(m.h)>=0||CLUBS_FR.indexOf(m.a)>=0;
   return (isFr?-100:0)+chapeauOf(m.h)+chapeauOf(m.a);
+}
+
+// Sélectionne, pour chaque JOUR CALENDAIRE (m.dt — pas la journée UEFA),
+// les 4 matchs "à pronostiquer" (les plus prestigieux selon matchAffiche,
+// club français garanti dans le lot s'il y en a un ce jour-là). Les autres
+// matchs du même jour restent visibles en lecture seule (accordéon).
+// Ajouté le 31/08/2026. Renvoie un objet {matchId: true, ...}.
+function getFeaturedIds(){
+  var byDate={};
+  for(var i=0;i<M.length;i++){var m=M[i];if(!m.dt)continue;(byDate[m.dt]=byDate[m.dt]||[]).push(m);}
+  var featured={};
+  Object.keys(byDate).forEach(function(dt){
+    var day=byDate[dt].slice().sort(function(a,b){return matchAffiche(a)-matchAffiche(b);});
+    for(var k=0;k<Math.min(4,day.length);k++)featured[day[k].id]=true;
+  });
+  return featured;
+}
+
+// Renvoie la date (m.dt) du "prochain jour de matchs" pour l'onglet de phase
+// actuel (S.tab) : la plus proche date qui a encore au moins un match pas
+// commencé. Si tout est déjà passé, renvoie la toute dernière date connue.
+// Utilisé pour ne montrer par défaut que le jour à venir sur l'onglet Matchs,
+// plutôt que tout le calendrier d'un coup. Ajouté le 31/08/2026.
+function getNextMatchDay(){
+  var now=Date.now();
+  var relevant=M.filter(function(m){return m.ph===S.tab;});
+  var dates=[];
+  var seen={};
+  for(var i=0;i<relevant.length;i++){var d=relevant[i].dt;if(d&&!seen[d]){seen[d]=true;dates.push(d);}}
+  dates.sort();
+  for(var di=0;di<dates.length;di++){
+    var d2=dates[di];
+    var hasUpcoming=relevant.some(function(m){return m.dt===d2&&matchKickoff(m.dt,m.ti)>now;});
+    if(hasUpcoming)return d2;
+  }
+  return dates.length?dates[dates.length-1]:null;
 }
 
 /* ═══ UTILITAIRES ═══════════════════════════════════════════════ */
@@ -1108,6 +1144,12 @@ function pgMatchs(){
     filtered=filtered.filter(function(m){return getJournee(m.id)===S.jour;});
   }
 
+  // Ne garder à pronostiquer que les 4 matchs "à l'affiche" du jour ;
+  // les autres partent dans otherMatches (accordéon, lecture seule).
+  var featuredIds=getFeaturedIds();
+  var otherMatches=filtered.filter(function(m){return !featuredIds[m.id];});
+  filtered=filtered.filter(function(m){return featuredIds[m.id];});
+
   var banner='';
   // Note: aucun login ici — render() bloque déjà via pgGroupLogin()/pgNoGroup()
   // avant d'atteindre pgMatchs(), donc S.user est toujours défini à ce stade.
@@ -1122,6 +1164,13 @@ function pgMatchs(){
     for(var j=1;j<=8;j++) jourH+='<button class="gb'+(S.jour==='J'+j?' on':'')+'" onclick="setJour(\'J'+j+'\')">J'+j+'</button>';
     jourH+='</div>';
   }
+
+  // Par défaut (S.searchDate===null, càd aucun filtre de date encore choisi
+  // explicitement), on ne montre que le prochain jour de matchs — pas tout
+  // le calendrier d'un coup. Choisir une date (y compris "Toutes les dates")
+  // dans le select ci-dessous prend le dessus et reste jusqu'à changement
+  // d'onglet de phase. Ajouté le 31/08/2026.
+  var effectiveDate=(S.searchDate===null)?getNextMatchDay():S.searchDate;
 
   var qfH='';
   if(S.user&&S.user!==ADMIN){
@@ -1147,9 +1196,11 @@ function pgMatchs(){
   if(S.search){
     var sq=S.search.toLowerCase();
     filtered=filtered.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
+    otherMatches=otherMatches.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
   }
-  if(S.searchDate){
-    filtered=filtered.filter(function(m){return m.dt===S.searchDate;});
+  if(effectiveDate){
+    filtered=filtered.filter(function(m){return m.dt===effectiveDate;});
+    otherMatches=otherMatches.filter(function(m){return m.dt===effectiveDate;});
   }
 
   // Construction des selects dynamiques à partir des matchs filtrés (avant search/date)
@@ -1164,10 +1215,10 @@ function pgMatchs(){
 
   var datesMap={};
   for(var di=0;di<allFiltered.length;di++) datesMap[allFiltered[di].dt]=1;
-  var dateOpts='<option value="">Toutes les dates</option>';
+  var dateOpts='<option value=""'+(effectiveDate===''?' selected':'')+'>Toutes les dates</option>';
   Object.keys(datesMap).sort().forEach(function(d){
     var dl=new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-    dateOpts+='<option value="'+d+'"'+(S.searchDate===d?' selected':'')+'>'+dl+'</option>';
+    dateOpts+='<option value="'+d+'"'+(effectiveDate===d?' selected':'')+'>'+dl+'</option>';
   });
 
   var hasTeams=Object.keys(teams).length>0;
@@ -1180,6 +1231,16 @@ function pgMatchs(){
   var cards='';
   for(var ci=0;ci<filtered.length;ci++)cards+=cardMatch(filtered[ci]);
 
+  var otherCards='';
+  if(otherMatches.length>0){
+    var otherInner='';
+    for(var oi=0;oi<otherMatches.length;oi++)otherInner+=cardMatchReadonly(otherMatches[oi]);
+    otherCards='<details class="other-matches" style="margin-top:16px">'
+      +'<summary style="cursor:pointer;color:var(--muted);font-size:.85rem;padding:8px 0;font-weight:600">&#128220; + '+otherMatches.length+' autre'+(otherMatches.length>1?'s':'')+' match'+(otherMatches.length>1?'s':'')+' du jour (non pronostiquables)</summary>'
+      +'<div class="mg" style="margin-top:10px">'+otherInner+'</div>'
+      +'</details>';
+  }
+
   var portal=document.getElementById('save-bar-portal');
   if(portal){
     if(S.user&&S.user!==ADMIN){
@@ -1190,10 +1251,10 @@ function pgMatchs(){
   }
 
   var totalM2=M.filter(function(m){return m.ph===S.tab;}).length;
-  return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; Saisissez votre pronostic sur chaque carte.</p>'
+  return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; 4 matchs à pronostiquer par jour (les plus \u00e0 l\'affiche).</p>'
     +banner
     +'<div class="matchs-sticky">'+tabsH+jourH+searchH+qfH+'</div>'
-    +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
+    +(filtered.length===0&&otherMatches.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':(filtered.length>0?'<div class="mg">'+cards+'</div>':'')+otherCards);
 }
 
 // Génère un stepper +/- pour la saisie de score pronostic (0, 1, 2...
@@ -1230,6 +1291,22 @@ function renderLogos(){
   var mtEl=document.getElementById('mtop');
   if(mtEl)mtEl.innerHTML=(club?'<img src="'+club+'" alt="Logo club">':'')+(ldc?'<img src="'+ldc+'" alt="Logo LDC">':'')+(!club&&!ldc?'<span style="font-weight:800;color:var(--gold);font-size:.95rem">&#9917; PRONO LDC 26/27</span>':'');
 }
+// Carte allégée, lecture seule, pour les matchs du jour NON sélectionnés
+// parmi les 4 "à pronostiquer" — pas de saisie, juste équipes/écussons et
+// le score une fois connu. Ajouté le 31/08/2026.
+function cardMatchReadonly(m){
+  var res=getRes(m.id);
+  var dt=new Date(matchKickoff(m.dt,m.ti));
+  var dateStr=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' &middot; '+m.ti;
+  var scoreBlock=res?('<div class="sd"><div class="sb2">'+res.h+'</div><span style="color:var(--muted);margin:0 2px">-</span><div class="sb2">'+res.a+'</div></div>'):'<div style="color:var(--muted);font-size:1.4rem;font-weight:900">VS</div>';
+  var phaseLabel=(m.ph==='LIGUE'&&getJournee(m.id))?('<span class="jour-badge">'+getJournee(m.id)+'</span> '):('<span class="jour-badge">'+m.ph+'</span> ');
+  return '<div class="mc'+(res?' fin':'')+'" style="opacity:.8">'
+   +'<div class="mh"><span class="mtag">'+phaseLabel+'Match #'+m.id+'</span><span class="ms'+(res?' fin':'')+'">'+(res?'TERMINÉ':'À VENIR')+'</span></div>'
+   +'<div class="mteams"><div class="team"><span class="tf">'+crestTag(m.h)+'</span><div class="tn">'+m.h+'</div></div><div style="text-align:center">'+scoreBlock+'</div><div class="team" style="text-align:right"><span class="tf">'+crestTag(m.a)+'</span><div class="tn">'+m.a+'</div></div></div>'
+   +'<div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:6px">'+dateStr+'</div>'
+   +'</div>';
+}
+
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(matchKickoff(m.dt,m.ti)),started=(new Date())>=dt;
@@ -1499,7 +1576,8 @@ function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;r
 function jokerActivationForm(j){
   var meta=JOKER_META[j.joker_type];
   var now=Date.now();
-  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;var k=matchKickoff(m.dt,m.ti);return!isNaN(k)&&k>now;});
+  var featuredIds=getFeaturedIds();
+  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;if(!featuredIds[m.id])return false;var k=matchKickoff(m.dt,m.ti);return!isNaN(k)&&k>now;});
   var matchOpts=upcoming.map(function(m){return '<option value="'+m.id+'">'+m.h+' vs '+m.a+' — '+m.dt+' '+m.ti+'</option>';}).join('');
   var targetField='';
   if(meta.target==='user'){
@@ -2268,7 +2346,7 @@ function renderNav(){
 }
 
 /* ═══ HANDLERS ══════════════════════════════════════════════════ */
-function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';S.search='';S.searchDate='';localStorage.setItem('ldc_tab',t);render();}
+function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';S.search='';S.searchDate=null;localStorage.setItem('ldc_tab',t);render();}
 function setJour(j){S.jour=j;S.search='';S.searchDate='';render();}
 function setGrp(g){S.grp=g;localStorage.setItem('ldc_grp2',g);render();}
 function setQF(f){S.qf=f;render();}
