@@ -200,12 +200,17 @@ html:not([data-theme="light"]) .t-purple .ss,html:not([data-theme="light"]) .t-m
 .rnc{text-align:right;color:var(--muted)}
 .gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:24px}
 .gc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden}
+/* .card : classe utilisée à ~16 endroits (classement Ligue, profil, jokers,
+   tableaux admin...) mais jamais définie — restait transparente, laissant
+   voir le fond stade+overlay derrière, illisible en thème clair.
+   Corrigé le 31/08/2026. */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:16px;box-shadow:var(--shadow-sm)}
 .ghd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--bdr)}
 .gbadge{background:var(--gold);color:#fff;font-weight:900;font-size:.72rem;padding:3px 8px;border-radius:4px}
 .gt{width:100%;border-collapse:collapse}
 .gt th{padding:6px 10px;text-align:center;font-size:.68rem;color:var(--muted);border-bottom:1px solid var(--bdr);font-weight:600}
 .gt th:first-child{text-align:left;padding-left:16px}
-.gt td{padding:8px 10px;text-align:center;font-size:.78rem;border-bottom:1px solid rgba(30,42,58,.5)}
+.gt td{padding:8px 10px;text-align:center;font-size:.78rem;border-bottom:1px solid var(--bdr)}
 .gt td:first-child{text-align:left;padding-left:16px}
 .gt tr:last-child td{border-bottom:none}
 .gt .tc{font-weight:700}
@@ -388,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.8.0';
+var VERSION = '2.9.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -527,20 +532,16 @@ function matchAffiche(m){
   return (isFr?-100:0)+chapeauOf(m.h)+chapeauOf(m.a);
 }
 
-// Sélectionne, pour chaque JOUR CALENDAIRE (m.dt — pas la journée UEFA),
-// les 4 matchs "à pronostiquer" (les plus prestigieux selon matchAffiche,
-// club français garanti dans le lot s'il y en a un ce jour-là). Les autres
-// matchs du même jour restent visibles en lecture seule (accordéon).
-// Ajouté le 31/08/2026. Renvoie un objet {matchId: true, ...}.
-function getFeaturedIds(){
-  var byDate={};
-  for(var i=0;i<M.length;i++){var m=M[i];if(!m.dt)continue;(byDate[m.dt]=byDate[m.dt]||[]).push(m);}
-  var featured={};
-  Object.keys(byDate).forEach(function(dt){
-    var day=byDate[dt].slice().sort(function(a,b){return matchAffiche(a)-matchAffiche(b);});
-    for(var k=0;k<Math.min(4,day.length);k++)featured[day[k].id]=true;
-  });
-  return featured;
+// Liste triée des dates distinctes de matchs pour l'onglet de phase actuel
+// (S.tab), en tenant compte du filtre journée UEFA (S.jour) s'il est actif.
+// Sert de base à goToNextDay(). Ajouté le 31/08/2026.
+function matchDayList(){
+  var relevant=M.filter(function(m){return m.ph===S.tab;});
+  if(S.tab==='LIGUE'&&S.jour!=='ALL') relevant=relevant.filter(function(m){return getJournee(m.id)===S.jour;});
+  var seen={},dates=[];
+  for(var i=0;i<relevant.length;i++){var d=relevant[i].dt;if(d&&!seen[d]){seen[d]=true;dates.push(d);}}
+  dates.sort();
+  return dates;
 }
 
 // Renvoie la date (m.dt) du "prochain jour de matchs" pour l'onglet de phase
@@ -561,6 +562,19 @@ function getNextMatchDay(){
     if(hasUpcoming)return d2;
   }
   return dates.length?dates[dates.length-1]:null;
+}
+
+// Avance d'un jour dans le calendrier (matchDayList), à partir du jour
+// actuellement affiché (S.searchDate, ou le jour auto si pas encore choisi).
+// Reste sur le dernier jour si on est déjà au bout. Ajouté le 31/08/2026.
+function goToNextDay(){
+  var dates=matchDayList();
+  if(!dates.length)return;
+  var current=(S.searchDate===null||S.searchDate==='')?getNextMatchDay():S.searchDate;
+  var idx=dates.indexOf(current);
+  var nextIdx=(idx===-1)?0:Math.min(idx+1,dates.length-1);
+  S.searchDate=dates[nextIdx];
+  render();
 }
 
 /* ═══ UTILITAIRES ═══════════════════════════════════════════════ */
@@ -1144,12 +1158,6 @@ function pgMatchs(){
     filtered=filtered.filter(function(m){return getJournee(m.id)===S.jour;});
   }
 
-  // Ne garder à pronostiquer que les 4 matchs "à l'affiche" du jour ;
-  // les autres partent dans otherMatches (accordéon, lecture seule).
-  var featuredIds=getFeaturedIds();
-  var otherMatches=filtered.filter(function(m){return !featuredIds[m.id];});
-  filtered=filtered.filter(function(m){return featuredIds[m.id];});
-
   var banner='';
   // Note: aucun login ici — render() bloque déjà via pgGroupLogin()/pgNoGroup()
   // avant d'atteindre pgMatchs(), donc S.user est toujours défini à ce stade.
@@ -1189,6 +1197,7 @@ function pgMatchs(){
       +'<button class="qfb'+(S.qf==='pending'?' on':'')+'" onclick="setQF(\'pending\')">&#9201; À venir ('+pendingCount2+')</button>'
       +'<button class="qfb'+(S.qf==='open'?' on':'')+'" onclick="setQF(\'open\')">&#128274; Sans prono ('+pc+')</button>'
       +'<button class="qfb'+(S.qf==='done'?' on':'')+'" onclick="setQF(\'done\')">&#10003; Déjà saisis</button>'
+      +'<button class="qfb" onclick="goToNextDay()">Jour suivant &#9654;</button>'
       +'</div>';
   }
 
@@ -1196,11 +1205,9 @@ function pgMatchs(){
   if(S.search){
     var sq=S.search.toLowerCase();
     filtered=filtered.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
-    otherMatches=otherMatches.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
   }
   if(effectiveDate){
     filtered=filtered.filter(function(m){return m.dt===effectiveDate;});
-    otherMatches=otherMatches.filter(function(m){return m.dt===effectiveDate;});
   }
 
   // Construction des selects dynamiques à partir des matchs filtrés (avant search/date)
@@ -1231,16 +1238,6 @@ function pgMatchs(){
   var cards='';
   for(var ci=0;ci<filtered.length;ci++)cards+=cardMatch(filtered[ci]);
 
-  var otherCards='';
-  if(otherMatches.length>0){
-    var otherInner='';
-    for(var oi=0;oi<otherMatches.length;oi++)otherInner+=cardMatchReadonly(otherMatches[oi]);
-    otherCards='<details class="other-matches" style="margin-top:16px">'
-      +'<summary style="cursor:pointer;color:var(--muted);font-size:.85rem;padding:8px 0;font-weight:600">&#128220; + '+otherMatches.length+' autre'+(otherMatches.length>1?'s':'')+' match'+(otherMatches.length>1?'s':'')+' du jour (non pronostiquables)</summary>'
-      +'<div class="mg" style="margin-top:10px">'+otherInner+'</div>'
-      +'</details>';
-  }
-
   var portal=document.getElementById('save-bar-portal');
   if(portal){
     if(S.user&&S.user!==ADMIN){
@@ -1251,10 +1248,10 @@ function pgMatchs(){
   }
 
   var totalM2=M.filter(function(m){return m.ph===S.tab;}).length;
-  return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; 4 matchs à pronostiquer par jour (les plus \u00e0 l\'affiche).</p>'
+  return '<div class="pt">LES MATCHS</div><p class="psub">'+totalM2+' matchs en '+labels[S.tab]+' &middot; Saisissez votre pronostic sur chaque carte.</p>'
     +banner
     +'<div class="matchs-sticky">'+tabsH+jourH+searchH+qfH+'</div>'
-    +(filtered.length===0&&otherMatches.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':(filtered.length>0?'<div class="mg">'+cards+'</div>':'')+otherCards);
+    +(filtered.length===0?'<div class="empty" style="margin-top:20px">Aucun match pour ce filtre.</div>':'<div class="mg">'+cards+'</div>');
 }
 
 // Génère un stepper +/- pour la saisie de score pronostic (0, 1, 2...
@@ -1291,22 +1288,6 @@ function renderLogos(){
   var mtEl=document.getElementById('mtop');
   if(mtEl)mtEl.innerHTML=(club?'<img src="'+club+'" alt="Logo club">':'')+(ldc?'<img src="'+ldc+'" alt="Logo LDC">':'')+(!club&&!ldc?'<span style="font-weight:800;color:var(--gold);font-size:.95rem">&#9917; PRONO LDC 26/27</span>':'');
 }
-// Carte allégée, lecture seule, pour les matchs du jour NON sélectionnés
-// parmi les 4 "à pronostiquer" — pas de saisie, juste équipes/écussons et
-// le score une fois connu. Ajouté le 31/08/2026.
-function cardMatchReadonly(m){
-  var res=getRes(m.id);
-  var dt=new Date(matchKickoff(m.dt,m.ti));
-  var dateStr=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' &middot; '+m.ti;
-  var scoreBlock=res?('<div class="sd"><div class="sb2">'+res.h+'</div><span style="color:var(--muted);margin:0 2px">-</span><div class="sb2">'+res.a+'</div></div>'):'<div style="color:var(--muted);font-size:1.4rem;font-weight:900">VS</div>';
-  var phaseLabel=(m.ph==='LIGUE'&&getJournee(m.id))?('<span class="jour-badge">'+getJournee(m.id)+'</span> '):('<span class="jour-badge">'+m.ph+'</span> ');
-  return '<div class="mc'+(res?' fin':'')+'" style="opacity:.8">'
-   +'<div class="mh"><span class="mtag">'+phaseLabel+'Match #'+m.id+'</span><span class="ms'+(res?' fin':'')+'">'+(res?'TERMINÉ':'À VENIR')+'</span></div>'
-   +'<div class="mteams"><div class="team"><span class="tf">'+crestTag(m.h)+'</span><div class="tn">'+m.h+'</div></div><div style="text-align:center">'+scoreBlock+'</div><div class="team" style="text-align:right"><span class="tf">'+crestTag(m.a)+'</span><div class="tn">'+m.a+'</div></div></div>'
-   +'<div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:6px">'+dateStr+'</div>'
-   +'</div>';
-}
-
 function cardMatch(m){
   var res=getRes(m.id),pr=S.user?uPronos(S.user):{},pn=pr[m.id]||null;
   var dt=new Date(matchKickoff(m.dt,m.ti)),started=(new Date())>=dt;
@@ -1576,8 +1557,7 @@ function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;r
 function jokerActivationForm(j){
   var meta=JOKER_META[j.joker_type];
   var now=Date.now();
-  var featuredIds=getFeaturedIds();
-  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;if(!featuredIds[m.id])return false;var k=matchKickoff(m.dt,m.ti);return!isNaN(k)&&k>now;});
+  var upcoming=M.filter(function(m){if(!m.dt||!m.ti)return false;var k=matchKickoff(m.dt,m.ti);return!isNaN(k)&&k>now;});
   var matchOpts=upcoming.map(function(m){return '<option value="'+m.id+'">'+m.h+' vs '+m.a+' — '+m.dt+' '+m.ti+'</option>';}).join('');
   var targetField='';
   if(meta.target==='user'){
