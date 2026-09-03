@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.9.1';
+var VERSION = '2.9.2';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1178,7 +1178,7 @@ function pgMatchs(){
   // le calendrier d'un coup. Choisir une date (y compris "Toutes les dates")
   // dans le select ci-dessous prend le dessus et reste jusqu'à changement
   // d'onglet de phase. Ajouté le 31/08/2026.
-  var effectiveDate=(S.searchDate===null)?getNextMatchDay():S.searchDate;
+  var effectiveDate=(S.searchDate!==null)?S.searchDate:(S.tab==='LIGUE'?getNextMatchDay():'');
 
   var qfH='';
   if(S.user&&S.user!==ADMIN){
