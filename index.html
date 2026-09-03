@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.9.0';
+var VERSION = '2.9.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1197,6 +1197,7 @@ function pgMatchs(){
       +'<button class="qfb'+(S.qf==='pending'?' on':'')+'" onclick="setQF(\'pending\')">&#9201; À venir ('+pendingCount2+')</button>'
       +'<button class="qfb'+(S.qf==='open'?' on':'')+'" onclick="setQF(\'open\')">&#128274; Sans prono ('+pc+')</button>'
       +'<button class="qfb'+(S.qf==='done'?' on':'')+'" onclick="setQF(\'done\')">&#10003; Déjà saisis</button>'
+      +'<button class="qfb" onclick="S.searchDate=null;render()">&#128197; Matchs du jour</button>'
       +'<button class="qfb" onclick="goToNextDay()">Jour suivant &#9654;</button>'
       +'</div>';
   }
