@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '2.9.2';
+var VERSION = '3.1.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -401,7 +401,7 @@ document.title='Prono LDC 26/27 v'+VERSION;
 (function(){var vb=document.getElementById('ver-badge');if(vb)vb.textContent='v'+VERSION;})();
 var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(window.location.search).get('g')||null):null;
 
-var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:null};
+var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
 // Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
@@ -530,51 +530,6 @@ function chapeauOf(team){return CHAPEAUX[team]||5;} // 5 = fallback (équipe TBD
 function matchAffiche(m){
   var isFr=CLUBS_FR.indexOf(m.h)>=0||CLUBS_FR.indexOf(m.a)>=0;
   return (isFr?-100:0)+chapeauOf(m.h)+chapeauOf(m.a);
-}
-
-// Liste triée des dates distinctes de matchs pour l'onglet de phase actuel
-// (S.tab), en tenant compte du filtre journée UEFA (S.jour) s'il est actif.
-// Sert de base à goToNextDay(). Ajouté le 31/08/2026.
-function matchDayList(){
-  var relevant=M.filter(function(m){return m.ph===S.tab;});
-  if(S.tab==='LIGUE'&&S.jour!=='ALL') relevant=relevant.filter(function(m){return getJournee(m.id)===S.jour;});
-  var seen={},dates=[];
-  for(var i=0;i<relevant.length;i++){var d=relevant[i].dt;if(d&&!seen[d]){seen[d]=true;dates.push(d);}}
-  dates.sort();
-  return dates;
-}
-
-// Renvoie la date (m.dt) du "prochain jour de matchs" pour l'onglet de phase
-// actuel (S.tab) : la plus proche date qui a encore au moins un match pas
-// commencé. Si tout est déjà passé, renvoie la toute dernière date connue.
-// Utilisé pour ne montrer par défaut que le jour à venir sur l'onglet Matchs,
-// plutôt que tout le calendrier d'un coup. Ajouté le 31/08/2026.
-function getNextMatchDay(){
-  var now=Date.now();
-  var relevant=M.filter(function(m){return m.ph===S.tab;});
-  var dates=[];
-  var seen={};
-  for(var i=0;i<relevant.length;i++){var d=relevant[i].dt;if(d&&!seen[d]){seen[d]=true;dates.push(d);}}
-  dates.sort();
-  for(var di=0;di<dates.length;di++){
-    var d2=dates[di];
-    var hasUpcoming=relevant.some(function(m){return m.dt===d2&&matchKickoff(m.dt,m.ti)>now;});
-    if(hasUpcoming)return d2;
-  }
-  return dates.length?dates[dates.length-1]:null;
-}
-
-// Avance d'un jour dans le calendrier (matchDayList), à partir du jour
-// actuellement affiché (S.searchDate, ou le jour auto si pas encore choisi).
-// Reste sur le dernier jour si on est déjà au bout. Ajouté le 31/08/2026.
-function goToNextDay(){
-  var dates=matchDayList();
-  if(!dates.length)return;
-  var current=(S.searchDate===null||S.searchDate==='')?getNextMatchDay():S.searchDate;
-  var idx=dates.indexOf(current);
-  var nextIdx=(idx===-1)?0:Math.min(idx+1,dates.length-1);
-  S.searchDate=dates[nextIdx];
-  render();
 }
 
 /* ═══ UTILITAIRES ═══════════════════════════════════════════════ */
@@ -866,11 +821,11 @@ function ptBadge(id,user){
   return{type:jok?'ok':'no',pts:earned,jok:jok};
 }
 
-function lb(){
+function lb(allGroups){
   var arr=[];
   for(var i=0;i<DB.users.length;i++){
     var u=DB.users[i];if(u.pseudo_key===ADMIN)continue;
-    if(GROUP_ID&&!isAdmin()&&u.group_id!==GROUP_ID)continue;
+    if(GROUP_ID&&!isAdmin()&&!allGroups&&u.group_id!==GROUP_ID)continue;
     var st=pts(u.id),pr=uPronos(u.id);
     arr.push({k:u.pseudo_key,id:u.id,gid:u.group_id,ps:u.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,ok:st.ok,pl:st.pl});
   }
@@ -912,6 +867,7 @@ function groupUrl(gid){return window.location.origin+window.location.pathname+'?
 async function createGroup(name){if(!sb||!name.trim())return{ok:false,msg:'Nom vide'};if(!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};var r=await secureCall('adminCreateGroup',{pin:SESSION_PIN,name:name.trim()});if(!r.ok)return{ok:false,msg:r.msg||'Erreur'};DB.groups.push(r.group);return{ok:true,group:r.group};}
 async function deleteGroup(gid){if(!sb)return{ok:false,msg:'Erreur'};if(!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};var r=await secureCall('adminDeleteGroup',{pin:SESSION_PIN,groupId:gid});if(r.ok)DB.groups=DB.groups.filter(function(g){return g.id!==gid;});return r;}
 function currentGroupName(){if(!GROUP_ID)return null;for(var i=0;i<DB.groups.length;i++)if(DB.groups[i].id===GROUP_ID)return DB.groups[i].name;return null;}
+function groupNameById(gid){if(!gid)return null;for(var i=0;i<DB.groups.length;i++)if(DB.groups[i].id===gid)return DB.groups[i].name;return null;}
 </script>
 
 <script>
@@ -1173,13 +1129,6 @@ function pgMatchs(){
     jourH+='</div>';
   }
 
-  // Par défaut (S.searchDate===null, càd aucun filtre de date encore choisi
-  // explicitement), on ne montre que le prochain jour de matchs — pas tout
-  // le calendrier d'un coup. Choisir une date (y compris "Toutes les dates")
-  // dans le select ci-dessous prend le dessus et reste jusqu'à changement
-  // d'onglet de phase. Ajouté le 31/08/2026.
-  var effectiveDate=(S.searchDate!==null)?S.searchDate:(S.tab==='LIGUE'?getNextMatchDay():'');
-
   var qfH='';
   if(S.user&&S.user!==ADMIN){
     var pr2=uPronos(S.user);
@@ -1197,8 +1146,6 @@ function pgMatchs(){
       +'<button class="qfb'+(S.qf==='pending'?' on':'')+'" onclick="setQF(\'pending\')">&#9201; À venir ('+pendingCount2+')</button>'
       +'<button class="qfb'+(S.qf==='open'?' on':'')+'" onclick="setQF(\'open\')">&#128274; Sans prono ('+pc+')</button>'
       +'<button class="qfb'+(S.qf==='done'?' on':'')+'" onclick="setQF(\'done\')">&#10003; Déjà saisis</button>'
-      +'<button class="qfb" onclick="S.searchDate=null;render()">&#128197; Matchs du jour</button>'
-      +'<button class="qfb" onclick="goToNextDay()">Jour suivant &#9654;</button>'
       +'</div>';
   }
 
@@ -1207,8 +1154,8 @@ function pgMatchs(){
     var sq=S.search.toLowerCase();
     filtered=filtered.filter(function(m){return m.h.toLowerCase().includes(sq)||m.a.toLowerCase().includes(sq);});
   }
-  if(effectiveDate){
-    filtered=filtered.filter(function(m){return m.dt===effectiveDate;});
+  if(S.searchDate){
+    filtered=filtered.filter(function(m){return m.dt===S.searchDate;});
   }
 
   // Construction des selects dynamiques à partir des matchs filtrés (avant search/date)
@@ -1223,10 +1170,10 @@ function pgMatchs(){
 
   var datesMap={};
   for(var di=0;di<allFiltered.length;di++) datesMap[allFiltered[di].dt]=1;
-  var dateOpts='<option value=""'+(effectiveDate===''?' selected':'')+'>Toutes les dates</option>';
+  var dateOpts='<option value=""'+(S.searchDate===''?' selected':'')+'>Toutes les dates</option>';
   Object.keys(datesMap).sort().forEach(function(d){
     var dl=new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-    dateOpts+='<option value="'+d+'"'+(effectiveDate===d?' selected':'')+'>'+dl+'</option>';
+    dateOpts+='<option value="'+d+'"'+(S.searchDate===d?' selected':'')+'>'+dl+'</option>';
   });
 
   var hasTeams=Object.keys(teams).length>0;
@@ -1395,9 +1342,8 @@ function cardMatch(m){
 
 function pgClass(){
   if(!sb)return pgSetup();
-  var board=lb();
   if(!S.classTab)S.classTab='general'; // onglet actif : 'general' ou 'confrontations'
-  var h='<div class="pt">&#127942; CLASSEMENT</div><p class="psub">Classement du groupe</p>';
+  var h='<div class="pt">&#127942; CLASSEMENT</div><p class="psub">Classement général &middot; tous groupes confondus</p>';
   var tabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
     +'<button class="tb'+(S.classTab==='general'?' on':'')+'" onclick="S.classTab=\'general\';render()">🏆 Général</button>'
     +'<button class="tb'+(S.classTab==='confrontations'?' on':'')+'" onclick="S.classTab=\'confrontations\';render()">⚔️ Confrontations</button>'
@@ -1410,15 +1356,88 @@ function pgClass(){
     return h+tabsH+pgConfrontations();
   }
 
-  var body='<div class="card" style="padding:0;margin-top:0">';
+  // Onglet Général : classement TOUS groupes confondus. Reprend exactement
+  // la logique de "Confrontations → Classement individuel" (fetch direct
+  // par groupe, ça marche déjà très bien pour les groupes adverses), juste
+  // élargie à TOUS les groupes existants (DB.groups) plutôt qu'aux seuls
+  // groupes liés par une confrontation. Corrigé le 31/08/2026 (la première
+  // tentative, un fetch users/pronos sans aucun filtre, renvoyait une liste
+  // vide — pas la peine de deviner pourquoi puisque ce chemin-ci marche déjà).
+  if(!S._genBoard){
+    S._genBoard='loading';
+    (async function(){
+      try{
+        var allGids={};
+        DB.groups.forEach(function(g){allGids[g.id]=1;});
+        var knownGids={};
+        DB.users.forEach(function(u){if(u.group_id)knownGids[u.group_id]=1;});
+        var gidsToLoad=Object.keys(allGids).filter(function(gid){return !knownGids[gid];});
+        var extraUsers=[];
+        for(var gi=0;gi<gidsToLoad.length;gi++){
+          var rU2=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',gidsToLoad[gi]);
+          if(rU2.data)extraUsers=extraUsers.concat(rU2.data);
+        }
+        var extraIds=extraUsers.map(function(u){return u.id;});
+        var extraPronos=[];
+        for(var bi=0;bi<extraIds.length;bi+=50){
+          var batch=extraIds.slice(bi,bi+50);
+          if(!batch.length)continue;
+          var rPr=await fetch(SUPABASE_URL+'/rest/v1/pronos?user_id=in.('+batch.join(',')+')',{
+            headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+          });
+          var prData=await rPr.json();
+          if(Array.isArray(prData))extraPronos=extraPronos.concat(prData);
+        }
+        var board=[];
+        var allUsers=DB.users.concat(extraUsers);
+        var extraPrMap={};
+        extraPronos.forEach(function(p){
+          if(!extraPrMap[p.user_id])extraPrMap[p.user_id]={};
+          extraPrMap[p.user_id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};
+        });
+        for(var ui=0;ui<allUsers.length;ui++){
+          var uu=allUsers[ui];
+          if(uu.pseudo_key===ADMIN)continue;
+          var userPronos=DB.pronos[uu.id]||DB.pronos[uu.pseudo_key]||extraPrMap[uu.id]||{};
+          var totalPts=0,exacts=0,bons=0,played=0;
+          var prIds=Object.keys(userPronos);
+          for(var pi=0;pi<prIds.length;pi++){
+            var pn=userPronos[prIds[pi]];
+            var r=DB.results[prIds[pi]];
+            if(!r)continue;
+            played++;
+            var odds=getMatchOdds(+prIds[pi]);
+            var earned=calcPts(pn,r,odds);
+            totalPts+=earned;
+            var exact=(pn.h===r.h&&pn.a===r.a);
+            var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
+            if(exact)exacts++;else if(goodW)bons++;
+          }
+          var gname=groupNameById(uu.group_id)||'';
+          board.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:prIds.length,p:Math.round(totalPts*100)/100,ex:exacts,ok:bons,pl:played});
+        }
+        board.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
+        S._genBoard=board;
+      }catch(e){S._genBoard=[];}
+      render();
+    })();
+  }
+  if(S._genBoard==='loading'){
+    return h+tabsH+'<div class="loading-wrap"><div class="spinner"></div></div>';
+  }
+
+  var board=S._genBoard;
+  var body='<div style="text-align:right;margin-bottom:8px"><button class="rsb" onclick="S._genBoard=null;render()">↻ Rafraîchir</button></div>'
+    +'<div class="card" style="padding:0;margin-top:0">';
   if(!board.length){body+='<div class="empty">Aucun participant pour le moment.</div></div>';}
   else{
     var rows='';
     for(var i=0;i<board.length;i++){
       var u=board[i],medal=i===0?'&#129351;':i===1?'&#129352;':i===2?'&#129353;':(i+1);
       var you=u.k===S.user?' <span style="color:var(--gold);font-size:.73rem">&#9668;</span>':'';
+      var gBadge=u.gname?' <span style="color:var(--muted);font-size:.72rem;font-weight:600">&middot; '+u.gname+'</span>':'';
       rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-       +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td>'
+       +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+gBadge+you+'</td>'
        +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
     body+='<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
@@ -1986,7 +2005,7 @@ function pgConfrontations(){
   // ─── Onglets ────────────────────────────────────────────────
   var cfTabsH='<div class="tabs" style="margin-top:16px;margin-bottom:16px">'
     +'<button class="tb'+(S.cfTab==='equipes'?' on':'')+'" onclick="S.cfTab=\'equipes\';render()">⚔️ Équipes</button>'
-    +'<button class="tb'+(S.cfTab==='individuel'?' on':'')+'" onclick="S.cfTab=\'individuel\';render()">🏆 Classement individuel</button>'
+    +'<button class="tb'+(S.cfTab==='individuel'?' on':'')+'" onclick="S.cfTab=\'individuel\';render()">🏆 Mon groupe</button>'
     +'</div>';
 
   // ─── Onglet ÉQUIPES — via RPC group_stats (aucun prono rapatrié) ──
@@ -2092,104 +2111,31 @@ function pgConfrontations(){
 
   // ─── Onglet CLASSEMENT INDIVIDUEL — chargement à la demande ──
   }else{
-    if(!S._cfBoard){
-      S._cfBoard='loading';
-      (async function(){
-        // Trouver tous les groupes des confrontations visibles
-        var allGids={};
-        for(var cfi2=0;cfi2<visibleCFs.length;cfi2++){
-          var cfGids2=DB.confrontationGroups.filter(function(cg){return cg.confrontation_id===visibleCFs[cfi2].id;}).map(function(cg){return cg.group_id;});
-          cfGids2.forEach(function(gid){allGids[gid]=1;});
-        }
-        // Charger les users et pronos des groupes adverses (pas déjà dans DB.users)
-        var knownGids={};
-        DB.users.forEach(function(u){if(u.group_id)knownGids[u.group_id]=1;});
-        var gidsToLoad=Object.keys(allGids).filter(function(gid){return !knownGids[gid];});
-        var extraUsers=[];
-        for(var gi=0;gi<gidsToLoad.length;gi++){
-          var rU2=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',gidsToLoad[gi]);
-          if(rU2.data)extraUsers=extraUsers.concat(rU2.data);
-        }
-        // Charger leurs pronos
-        var extraIds=extraUsers.map(function(u){return u.id;});
-        var extraPronos=[];
-        if(extraIds.length){
-          // Charger les pronos en batches de 50 ids (évite les URLs trop longues)
-          for(var bi=0;bi<extraIds.length;bi+=50){
-            var batch=extraIds.slice(bi,bi+50);
-            var rPr=await fetch(SUPABASE_URL+'/rest/v1/pronos?user_id=in.('+batch.join(',')+')',{
-              headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
-            });
-            var prData=await rPr.json();
-            if(Array.isArray(prData))extraPronos=extraPronos.concat(prData);
-          }
-        }
-        // Construire le classement
-        var board2=[];
-        // Joueurs déjà dans DB.users (propre groupe + admin)
-        var allUsers=DB.users.concat(extraUsers);
-        var allPronos=Object.assign({},DB.pronos);
-        // Intégrer les pronos adverses dans un index temporaire
-        var extraPrMap={};
-        extraPronos.forEach(function(p){
-          if(!extraPrMap[p.user_id])extraPrMap[p.user_id]={};
-          extraPrMap[p.user_id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};
-        });
-        for(var ui=0;ui<allUsers.length;ui++){
-          var uu=allUsers[ui];
-          if(uu.pseudo_key===ADMIN)continue;
-          if(!allGids[uu.group_id])continue;
-          var userPronos=DB.pronos[uu.id]||DB.pronos[uu.pseudo_key]||extraPrMap[uu.id]||{};
-          // Calculer points manuellement pour les users adverses
-          var totalPts=0,exacts=0,bons=0,played=0;
-          var prIds=Object.keys(userPronos);
-          for(var pi=0;pi<prIds.length;pi++){
-            var pn=userPronos[prIds[pi]];
-            var r=DB.results[prIds[pi]];
-            if(!r)continue;
-            played++;
-            var odds=getMatchOdds(+prIds[pi]);
-            var earned=calcPts(pn,r,odds);
-            totalPts+=earned;
-            var exact=(pn.h===r.h&&pn.a===r.a);
-            var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
-            if(exact)exacts++;else if(goodW)bons++;
-          }
-          var gname='';for(var j=0;j<DB.groups.length;j++)if(DB.groups[j].id===uu.group_id){gname=DB.groups[j].name;break;}
-          board2.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:prIds.length,p:Math.round(totalPts*100)/100,ex:exacts,ok:bons,pl:played});
-        }
-        board2.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
-        S._cfBoard=board2;
-        render();
-      })();
-      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
-    } else if(S._cfBoard==='loading'){
-      cfBlocks='<div class="loading-wrap"><div class="spinner"></div></div>';
-    } else {
-      var board2=S._cfBoard;
-      var myGid3=S.user&&!isAdmin()&&DB.userMap[S.user]?DB.userMap[S.user].group_id:null;
-      var rows2='';
-      for(var bi2=0;bi2<board2.length;bi2++){
-        var u2=board2[bi2];
-        var medal2=bi2===0?'🥇':bi2===1?'🥈':bi2===2?'🥉':(bi2+1);
-        var you2=u2.k===S.user?' <span style="color:var(--gold);font-size:.73rem">◀</span>':'';
-        rows2+='<tr'+(u2.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
-          +'<td class="rn'+(bi2<3?' t':'')+'">'+medal2+'</td>'
-          +'<td>'+u2.ps+you2+'</td>'
-          +'<td style="color:var(--gold);font-size:.75rem">'+u2.gname+'</td>'
-          +'<td class="rnc">'+u2.ex+'</td>'
-          +'<td class="rnc">'+u2.np+'</td>'
-          +'<td class="rpts">'+fmtPts(u2.p)+'</td>'
-          +'</tr>';
-      }
-      if(!rows2){
-        cfBlocks='<div class="empty">Aucun joueur dans ces confrontations.</div>';
-      }else{
-        cfBlocks='<div style="text-align:right;margin-bottom:8px"><button class="rsb" onclick="S._cfBoard=null;render()">↻ Rafraîchir</button></div>'
-          +'<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
-          +'<thead><tr><th>#</th><th>Joueur</th><th>Équipe</th><th class="r">🎯 Exacts</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
-          +'<tbody>'+rows2+'</tbody></table></div>';
-      }
+    // Onglet "Mon groupe" (remplace l'ancien "Classement individuel" cross-
+    // groupe le 31/08/2026) : classement simple des membres de son propre
+    // groupe, via lb() qui est déjà scopé au bon groupe par défaut — pas
+    // besoin de fetch async ici, tout est déjà chargé localement.
+    var board2=lb();
+    var rows2='';
+    for(var bi2=0;bi2<board2.length;bi2++){
+      var u2=board2[bi2];
+      var medal2=bi2===0?'🥇':bi2===1?'🥈':bi2===2?'🥉':(bi2+1);
+      var you2=u2.k===S.user?' <span style="color:var(--gold);font-size:.73rem">◀</span>':'';
+      rows2+='<tr'+(u2.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
+        +'<td class="rn'+(bi2<3?' t':'')+'">'+medal2+'</td>'
+        +'<td><span style="margin-right:4px">'+avt(u2.k)+'</span>'+u2.ps+you2+'</td>'
+        +'<td class="rnc">'+u2.ex+'</td>'
+        +'<td class="rnc">'+u2.ok+'</td>'
+        +'<td class="rnc">'+u2.np+'</td>'
+        +'<td class="rpts">'+fmtPts(u2.p)+'</td>'
+        +'</tr>';
+    }
+    if(!rows2){
+      cfBlocks='<div class="empty">Aucun joueur dans ce groupe.</div>';
+    }else{
+      cfBlocks='<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
+        +'<thead><tr><th>#</th><th>Joueur</th><th class="r">🎯 Exact</th><th class="r">✓ Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
+        +'<tbody>'+rows2+'</tbody></table></div>';
     }
   }
 
@@ -2327,7 +2273,7 @@ function renderNav(){
 }
 
 /* ═══ HANDLERS ══════════════════════════════════════════════════ */
-function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';S.search='';S.searchDate=null;localStorage.setItem('ldc_tab',t);render();}
+function setTab(t){S.tab=t;S.jour='ALL';S.qf='all';S.search='';S.searchDate='';localStorage.setItem('ldc_tab',t);render();}
 function setJour(j){S.jour=j;S.search='';S.searchDate='';render();}
 function setGrp(g){S.grp=g;localStorage.setItem('ldc_grp2',g);render();}
 function setQF(f){S.qf=f;render();}
