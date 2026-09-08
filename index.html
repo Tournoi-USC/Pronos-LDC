@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.1.0';
+var VERSION = '3.1.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -671,7 +671,7 @@ async function delRes(id){
   return r;
 }
 
-function getWinner(matchId){var r=DB.results[matchId];if(!r)return null;var m=null;for(var i=0;i<M.length;i++)if(M[i].id===matchId){m=M[i];break;}if(!m)return null;if(m.win)return m.win==='h'?m.h:m.a;if(r.h===r.a)return null;return r.h>r.a?m.h:m.a;}
+function getWinner(matchId){var r=DB.results[matchId];if(!r)return null;var m=null;for(var i=0;i<M.length;i++)if(M[i].id===matchId){m=M[i];break;}if(!m)return null;if(r.h!==r.a)return r.h>r.a?m.h:m.a;if(m.win)return m.win==='h'?m.h:m.a;return null;}
 // La propagation des vainqueurs se fait toujours par lot complet côté
 // serveur (idempotent et sûr) — conservé comme alias pour compatibilité
 // des appels existants qui ciblaient un seul match.
@@ -1251,8 +1251,14 @@ function cardMatch(m){
   if(m.oh&&m.oa){
     var winSide=null;
     if(res){
-      if(m.win)winSide=m.win;
-      else if(res.h!==res.a)winSide=res.h>res.a?'h':'a';
+      // m.win (matches.winner) ne doit servir QUE pour trancher un vrai nul
+      // (tirs au but) — jamais prioritaire sur un score déjà décisif, sinon
+      // une valeur erronée/obsolète dans cette colonne peut afficher le
+      // mauvais vainqueur alors que le score lui-même est sans ambiguïté.
+      // Bug corrigé le 8 septembre 2026 (ex: AEK 1-0 LASK affiché comme
+      // gagné par LASK à cause d'un matches.winner='a' resté en base).
+      if(res.h!==res.a)winSide=res.h>res.a?'h':'a';
+      else if(m.win)winSide=m.win;
       else winSide='d';
     }
     var oddPill=function(side,txt,baseStyle){
