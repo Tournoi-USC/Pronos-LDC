@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.1.1';
+var VERSION = '3.2.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1692,7 +1692,12 @@ function buildAdminPanel(){
       +'<h4 style="margin-bottom:6px">&#128279; Propagation des qualifiés</h4>'
       +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Reporte le vainqueur de chaque match KO dans le match suivant. Se fait aussi automatiquement à chaque saisie de score.</p>'
       +'<button class="btn-g" onclick="hPropagateAll()" style="background:#0f3a1a;color:#4ade80">&#9654; Propager tous les qualifiés</button>'
-      +'<div id="prope" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>';
+      +'<div id="prope" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
+      +'<hr class="hr2">'
+      +'<h4 style="margin-bottom:6px">&#127183; Rattrapage jokers</h4>'
+      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Correctif du 08/09/2026 : les scores auto-synchronisés ne déclenchaient jamais l\'attribution/résolution des jokers. À lancer une fois pour rattraper les matchs déjà joués (sans risque si relancé plusieurs fois).</p>'
+      +'<button class="btn-g" onclick="hBackfillJokers()" style="background:#3a2a0f;color:#facc15">&#127183; Rattraper les jokers</button>'
+      +'<div id="jokbfe" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>';
   }
   else if(S.adminTab==='joueurs'){
     var grpMap2={};DB.groups.forEach(function(g){grpMap2[g.id]=g.name;});
@@ -2408,7 +2413,7 @@ function pgReglement(){
 
       // Bonne différence
       +'<div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 12px">'
-      +'<div style="color:var(--grn);font-weight:700;margin-bottom:3px">✓✓ Bon résultat + bonne différence de buts</div>'
+      +'<div style="color:var(--grn);font-weight:700;margin-bottom:3px">≈ Bon résultat + bonne différence de buts</div>'
       +'<div style="color:var(--txt)">Même écart de buts que le résultat réel → <strong>côte × 5</strong></div>'
       +'</div>'
 
@@ -2528,6 +2533,14 @@ async function hSetRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}
 async function hDelRes(id){if(!isAdmin()){toast('Accès refusé','err');return;}var r=await delRes(id);if(!r.ok){toast(r.msg||'Erreur','err');return;}toast('Score supprimé');render();}
 async function hSetWinner(id,val){if(!isAdmin()||!sb)return;if(!SESSION_PIN){toast('Mode admin non activé','err');return;}var w=val||null;var r=await secureCall('adminSetWinner',{pin:SESSION_PIN,matchId:id,winner:w});if(!r.ok){toast(r.msg||'Erreur','err');return;}for(var i=0;i<M.length;i++)if(M[i].id===+id){M[i].win=w;break;}if(r.propagated>0)await refreshMatches();toast(w?'Vainqueur TAB : '+(w==='h'?M.find(function(m){return m.id===+id;}).h:M.find(function(m){return m.id===+id;}).a)+' ✓':'TAB effacé');render();}
 async function hPropagateAll(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('prope');if(e)e.textContent='Propagation en cours...';var count=await propagateAllWinners();render();var msg=count>0?count+' match(s) propagé(s) ✓':'Aucun résultat KO à propager';toast(msg);if(e)e.textContent=msg;}
+async function hBackfillJokers(){
+  if(!isAdmin()||!SESSION_PIN){toast('Accès refusé','err');return;}
+  var e=document.getElementById('jokbfe');if(e)e.textContent='Rattrapage en cours (peut prendre un moment)...';
+  var r=await secureCall('adminBackfillJokers',{pin:SESSION_PIN});
+  var msg=r.ok?('Rattrapage terminé sur '+r.count+' match(s) ✓'):('Erreur : '+(r.msg||'inconnue'));
+  toast(msg,r.ok?undefined:'err');
+  if(e)e.textContent=msg;
+}
 async function hCpw(){var o=gv('opw'),n=gv('npw'),r=await chgPw(o,n);if(r.ok){toast('Mot de passe modifié ✓');S.cpw=false;render();}else{var e=document.getElementById('cpwe');if(e)e.textContent=r.msg;}}
 async function hAdmReset(){var p=gv('ap'),n=gv('anp'),pin=gv('apin'),r=await admReset(p,n,pin),e=document.getElementById('ae');if(e){e.textContent=r.ok?'Réinitialisé !':r.msg;e.style.color=r.ok?'var(--grn)':'var(--red)';}if(r.ok)toast('Mot de passe réinitialisé ✓');}
 async function hDelUser(){if(!isAdmin()){toast('Accès refusé','err');return;}var pseudo=gv('dup').trim().toLowerCase(),pin=gv('dpin'),e=document.getElementById('de');if(!pseudo){if(e){e.textContent='Entre un pseudo.';e.style.color='var(--red)';}return;}if(pseudo===ADMIN){if(e){e.textContent='Impossible.';e.style.color='var(--red)';}return;}var r=await secureCall('adminDeleteUser',{pin:pin,pseudo:pseudo});if(!r.ok){if(e){e.textContent=r.msg||'Erreur';e.style.color='var(--red)';}return;}var uu=DB.userMap[pseudo];if(uu)DB.users=DB.users.filter(function(u){return u.id!==uu.id;});delete DB.userMap[pseudo];delete DB.pronos[pseudo];toast('Compte supprimé');render();}
