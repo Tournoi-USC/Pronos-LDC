@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.2.0';
+var VERSION = '3.2.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -571,8 +571,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
     setSessionPw(pw);
     DB.userMap[k]=r.user;
     for(var ei=0;ei<DB.users.length;ei++)if(DB.users[ei].pseudo_key===k){DB.users[ei]=r.user;break;}
-    if(!DB.pronos[k])DB.pronos[k]={};
-    (r.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+    setUserPronos(r.user.id,k,r.myPronos);
     if(k!==ADMIN)DB_JOKERS=r.myJokers||[];
     S.user=k;
     localStorage.setItem('ldc_ses',k);
@@ -592,8 +591,8 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
     var r2=await secureCall('login',{pseudo:k,password:pw});
     if(r2.ok){
       setSessionPw(pw);
-      DB.users.push(r2.user);DB.userMap[k]=r2.user;DB.pronos[k]={};
-      (r2.myPronos||[]).forEach(function(p){DB.pronos[k][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+      DB.users.push(r2.user);DB.userMap[k]=r2.user;
+      setUserPronos(r2.user.id,k,r2.myPronos);
       if(k!==ADMIN)DB_JOKERS=r2.myJokers||[];
       S.user=k;
       localStorage.setItem('ldc_ses',k);
@@ -657,6 +656,26 @@ async function admReset(pseudo,np,pin){
 
 /* ═══ PRONOS ════════════════════════════════════════════════════ */
 function uPronos(u){if(DB.pronos[u])return DB.pronos[u];var uu=DB.userMap[u];if(uu&&DB.pronos[uu.id])return DB.pronos[uu.id];return{};}
+// Écrit les pronos d'un utilisateur sous SES DEUX clés (id ET pseudo_key),
+// toujours vers le MÊME objet partagé — évite toute divergence entre du
+// code qui lit l'une ou l'autre clé (bug corrigé le 09/09/2026 : profil et
+// classement pouvaient afficher des totaux différents pour la même
+// personne selon quelle clé avait été mise à jour en dernier).
+function setUserPronos(uid,pseudoKey,rowsArray){
+  var obj={};
+  (rowsArray||[]).forEach(function(p){obj[p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};});
+  if(uid!=null)DB.pronos[uid]=obj;
+  if(pseudoKey)DB.pronos[pseudoKey]=obj;
+  return obj;
+}
+// Met à jour/ajoute UN prono (après saisie/sauvegarde), sur l'objet déjà
+// partagé s'il existe, en le fusionnant sinon.
+function setOneProno(uid,pseudoKey,matchId,entry){
+  var obj=(uid!=null&&DB.pronos[uid])||(pseudoKey&&DB.pronos[pseudoKey])||{};
+  obj[matchId]=entry;
+  if(uid!=null)DB.pronos[uid]=obj;
+  if(pseudoKey)DB.pronos[pseudoKey]=obj;
+}
 function getRes(id){return DB.results[id]||null;}
 async function setRes(id,hv,av){
   if(!sb||!SESSION_PIN)return{ok:false,msg:'Mode admin non activé (PIN requis).'};
@@ -1695,6 +1714,7 @@ function buildAdminPanel(){
       +'<div id="prope" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>'
       +'<hr class="hr2">'
       +'<h4 style="margin-bottom:6px">&#127183; Rattrapage jokers</h4>'
+      +'<p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Correctif du 08/09/2026 : les scores auto-synchronisés ne déclenchaient jamais l\'attribution/résolution des jokers. À lancer une fois pour rattraper les matchs déjà joués (sans risque si relancé plusieurs fois).</p>'
       +'<button class="btn-g" onclick="hBackfillJokers()" style="background:#3a2a0f;color:#facc15">&#127183; Rattraper les jokers</button>'
       +'<div id="jokbfe" style="font-size:.75rem;color:var(--muted);margin-top:6px"></div>';
   }
@@ -2690,8 +2710,7 @@ async function hSaveAll(){
     var wpEl=document.getElementById('pwp'+m.id);
     var wp=wpEl?wpEl.value||null:null;
     records.push({user_id:uid,match_id:m.id,home_score:+hEl.value,away_score:+aEl.value,winner_prono:wp,updated_at:new Date().toISOString()});
-    if(!DB.pronos[S.user])DB.pronos[S.user]={};
-    DB.pronos[S.user][m.id]={h:+hEl.value,a:+aEl.value,wp:wp};
+    setOneProno(DB.userMap[S.user]?DB.userMap[S.user].id:null,S.user,m.id,{h:+hEl.value,a:+aEl.value,wp:wp});
     saved++;
   }
   if(!records.length){toast('Aucun pronostic à sauvegarder','info');return;}
@@ -2815,8 +2834,12 @@ async function reloadPronos(){
   if(!sb)return;
   var r=await sb.from('pronos').select('*');var pronos=r.data||[];
   var knownIds={};for(var j=0;j<DB.users.length;j++)knownIds[DB.users[j].id]=DB.users[j];
-  for(var k in DB.pronos)DB.pronos[k]={};
-  for(var i=0;i<pronos.length;i++){var p=pronos[i],owner=knownIds[p.user_id];if(owner){if(!DB.pronos[owner.pseudo_key])DB.pronos[owner.pseudo_key]={};DB.pronos[owner.pseudo_key][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};}}
+  var byOwner={};
+  for(var i=0;i<pronos.length;i++){var p=pronos[i];(byOwner[p.user_id]=byOwner[p.user_id]||[]).push(p);}
+  Object.keys(byOwner).forEach(function(uid){
+    var owner=knownIds[uid];
+    if(owner)setUserPronos(owner.id,owner.pseudo_key,byOwner[uid]);
+  });
 }
 
 // Realtime actif seulement si : admin connecté OU un match est en cours
