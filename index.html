@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.3.0';
+var VERSION = '3.3.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1107,9 +1107,9 @@ function pgAccueil(){
     for(var bi=0;bi<Math.min(5,board.length);bi++){
       var u=board[bi],medal=bi===0?'&#129351;':bi===1?'&#129352;':bi===2?'&#129353;':(bi+1);
       var you=u.k===S.user?' <span style="color:var(--gold);font-size:.7rem">(vous)</span>':'';
-      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
+      rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.okd+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
-    h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">&#8776;</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   return h;
 }
