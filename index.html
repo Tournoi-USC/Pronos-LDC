@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.2.3';
+var VERSION = '3.3.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -857,7 +857,7 @@ function lb(allGroups){
     var u=DB.users[i];if(u.pseudo_key===ADMIN)continue;
     if(GROUP_ID&&!isAdmin()&&!allGroups&&u.group_id!==GROUP_ID)continue;
     var st=pts(u.id),pr=uPronos(u.id);
-    arr.push({k:u.pseudo_key,id:u.id,gid:u.group_id,ps:u.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,ok:st.ok,pl:st.pl});
+    arr.push({k:u.pseudo_key,id:u.id,gid:u.group_id,ps:u.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,okd:st.okd,ok:st.ok,pl:st.pl});
   }
   arr.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
   return arr;
@@ -1447,7 +1447,7 @@ function pgClass(){
           if(uu.pseudo_key===ADMIN)continue;
           var st=pts(uu.id),pr=uPronos(uu.id);
           var gname=groupNameById(uu.group_id)||'';
-          board.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,ok:st.ok,pl:st.pl});
+          board.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,okd:st.okd,ok:st.ok,pl:st.pl});
         }
         board.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
         S._genBoard=board;
@@ -1471,9 +1471,9 @@ function pgClass(){
       var gBadge=u.gname?' <span style="color:var(--muted);font-size:.72rem;font-weight:600">&middot; '+u.gname+'</span>':'';
       rows+='<tr'+(u.k===S.user?' style="background:rgba(26,86,219,.05)"':'')+'>'
        +'<td class="rn'+(i<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+gBadge+you+'</td>'
-       +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
+       +'<td class="rnc">'+u.ex+'</td><td class="rnc">'+u.okd+'</td><td class="rnc">'+u.ok+'</td><td class="rnc">'+u.np+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
-    body+='<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    body+='<div style="overflow-x:auto"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">&#127919; Exact</th><th class="r">&#8776; Bonne diff</th><th class="r">&#10003; Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
   return h+tabsH+body;
 }
@@ -1549,7 +1549,7 @@ function pgProfil(){
   return '<div class="phd"><div class="pi2"><div style="width:54px;height:54px;background:rgba(26,86,219,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid var(--gold)">'+myAvatar+'</div><div><div style="font-size:1.7rem;font-weight:900">'+ps.toUpperCase()+'</div><div style="color:var(--muted);font-size:.83rem">'+prk.length+' pronostics enregistrés</div></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-o" onclick="tAvEdit()">&#9917; Changer avatar</button><button class="btn-o" onclick="tCpw()">&#128274; Changer mdp</button><button class="theme-toggle" id="theme-toggle-btn" style="width:auto" onclick="toggleTheme()" title="Changer de thème"></button><button class="btn-o" onclick="doLogout()">&#8594; Déconnexion</button></div></div>'
     +avEditBlock
     +cpwBlock
-    +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+fmtPts(st.p)+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
+    +'<div class="psg"><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127942;</div><div class="psv">'+fmtPts(st.p)+'</div><div class="psl">Points</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#127919;</div><div class="psv">'+st.ex+'</div><div class="psl">Scores exacts</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#8776;</div><div class="psv">'+st.okd+'</div><div class="psl">Bonne différence</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px;color:var(--grn)">&#10003;</div><div class="psv">'+st.ok+'</div><div class="psl">Bons résultats</div></div><div class="psc"><div style="font-size:1.2rem;margin-bottom:6px">&#9201;</div><div class="psv">'+st.pl+'</div><div class="psl">Matchs joués</div></div></div>'
     +profTabsH+tabBody;
 }
 
@@ -2163,6 +2163,7 @@ function pgConfrontations(){
         +'<td class="rn'+(bi2<3?' t':'')+'">'+medal2+'</td>'
         +'<td><span style="margin-right:4px">'+avt(u2.k)+'</span>'+u2.ps+you2+'</td>'
         +'<td class="rnc">'+u2.ex+'</td>'
+        +'<td class="rnc">'+u2.okd+'</td>'
         +'<td class="rnc">'+u2.ok+'</td>'
         +'<td class="rnc">'+u2.np+'</td>'
         +'<td class="rpts">'+fmtPts(u2.p)+'</td>'
@@ -2172,7 +2173,7 @@ function pgConfrontations(){
       cfBlocks='<div class="empty">Aucun joueur dans ce groupe.</div>';
     }else{
       cfBlocks='<div class="card" style="padding:0;overflow-x:auto"><table class="rt">'
-        +'<thead><tr><th>#</th><th>Joueur</th><th class="r">🎯 Exact</th><th class="r">✓ Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
+        +'<thead><tr><th>#</th><th>Joueur</th><th class="r">🎯 Exact</th><th class="r">≈ Bonne diff</th><th class="r">✓ Bon résultat</th><th class="r">Pronos</th><th class="r gd">Points</th></tr></thead>'
         +'<tbody>'+rows2+'</tbody></table></div>';
     }
   }
