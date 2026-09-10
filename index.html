@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.2.1';
+var VERSION = '3.2.2';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1413,33 +1413,30 @@ function pgClass(){
           var prData=await rPr.json();
           if(Array.isArray(prData))extraPronos=extraPronos.concat(prData);
         }
-        var board=[];
-        var allUsers=DB.users.concat(extraUsers);
-        var extraPrMap={};
+        var extraPrByUser={};
         extraPronos.forEach(function(p){
-          if(!extraPrMap[p.user_id])extraPrMap[p.user_id]={};
-          extraPrMap[p.user_id][p.match_id]={h:p.home_score,a:p.away_score,wp:p.winner_prono||null};
+          (extraPrByUser[p.user_id]=extraPrByUser[p.user_id]||[]).push(p);
         });
+        // Fusionner les pronos "extra" (autres groupes) dans le cache partagé
+        // DB.pronos, pour pouvoir réutiliser pts()/uPronos() tel quel juste
+        // après — garantit une cohérence totale avec le profil (mêmes
+        // catégories exact/bonne diff/bon résultat, mêmes bonus jokers).
+        // Corrigé le 09/09/2026 : l'ancien calcul dupliqué ici ne distinguait
+        // pas "bonne différence" de "bon résultat", et n'ajoutait jamais les
+        // bonus de jokers résolus — d'où l'écart avec le profil.
+        var allUsers=DB.users.concat(extraUsers);
+        allUsers.forEach(function(u){
+          if(extraPrByUser[u.id]&&!DB.pronos[u.id]&&!DB.pronos[u.pseudo_key]){
+            setUserPronos(u.id,u.pseudo_key,extraPrByUser[u.id]);
+          }
+        });
+        var board=[];
         for(var ui=0;ui<allUsers.length;ui++){
           var uu=allUsers[ui];
           if(uu.pseudo_key===ADMIN)continue;
-          var userPronos=DB.pronos[uu.id]||DB.pronos[uu.pseudo_key]||extraPrMap[uu.id]||{};
-          var totalPts=0,exacts=0,bons=0,played=0;
-          var prIds=Object.keys(userPronos);
-          for(var pi=0;pi<prIds.length;pi++){
-            var pn=userPronos[prIds[pi]];
-            var r=DB.results[prIds[pi]];
-            if(!r)continue;
-            played++;
-            var odds=getMatchOdds(+prIds[pi]);
-            var earned=calcPts(pn,r,odds);
-            totalPts+=earned;
-            var exact=(pn.h===r.h&&pn.a===r.a);
-            var goodW=Math.sign(pn.h-pn.a)===Math.sign(r.h-r.a);
-            if(exact)exacts++;else if(goodW)bons++;
-          }
+          var st=pts(uu.id),pr=uPronos(uu.id);
           var gname=groupNameById(uu.group_id)||'';
-          board.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:prIds.length,p:Math.round(totalPts*100)/100,ex:exacts,ok:bons,pl:played});
+          board.push({k:uu.pseudo_key,id:uu.id,gid:uu.group_id,gname:gname,ps:uu.pseudo_display,np:Object.keys(pr).length,p:st.p,ex:st.ex,ok:st.ok,pl:st.pl});
         }
         board.sort(function(a,b){return b.p-a.p||b.ex-a.ex||b.ok-a.ok;});
         S._genBoard=board;
