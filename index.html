@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.3.1';
+var VERSION = '3.3.2';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -1109,7 +1109,7 @@ function pgAccueil(){
       var you=u.k===S.user?' <span style="color:var(--gold);font-size:.7rem">(vous)</span>':'';
       rows+='<tr><td class="rn'+(bi<3?' t':'')+'">'+medal+'</td><td><span style="margin-right:4px">'+avt(u.k)+'</span>'+u.ps+you+'</td><td class="rnc">'+u.ex+'</td><td class="rnc">'+u.okd+'</td><td class="rnc">'+u.ok+'</td><td class="rpts">'+fmtPts(u.p)+'</td></tr>';
     }
-    h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">&#8776;Bonne diff</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    h+='<div class="sec-title">&#127885; Top classement</div><div class="card" style="padding:0"><table class="rt"><thead><tr><th>#</th><th>Joueur</th><th class="r">Exact</th><th class="r">&#8776;</th><th class="r">Résultat</th><th class="r gd">Points</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   return h;
 }
@@ -1372,7 +1372,7 @@ function cardMatch(m){
    +oddsBlock+pronoBlock+adminBlock
    +(res&&!isAdmin()&&S.user?(function(){var ex2=0,okd2=0,ok2=0,no2=0,tot=0;for(var ui=0;ui<DB.users.length;ui++){var u=DB.users[ui];if(u.pseudo_key===ADMIN)continue;var upn=uPronos(u.pseudo_key)[m.id];if(!upn)continue;tot++;var ub=ptBadge(m.id,u.pseudo_key);if(!ub)continue;if(ub.type==='ex')ex2++;else if(ub.type==='okd')okd2++;else if(ub.type==='ok')ok2++;else no2++;}if(!tot)return '';return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+(ex2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(26,86,219,.2);color:#60a5fa">&#127919; '+ex2+'</span>':'')+(okd2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#8776; '+okd2+'</span>':'')+(ok2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:rgba(34,197,94,.12);color:var(--grn)">&#10003; '+ok2+'</span>':'')+(no2?'<span style="font-size:.7rem;padding:1px 7px;border-radius:4px;background:var(--bg);color:var(--muted)">&#10007; '+no2+'</span>':'')+'</div>';})():'')
    +'<div class="mf2"><span>&#128197; '+dateStr+(m.v&&m.v!=='TBD'?' &middot; &#128205; <a href="https://www.google.com/maps/search/'+encodeURIComponent(m.v)+'" target="_blank" style="color:var(--muted);text-decoration:none">'+m.v+'</a>':'')+'</span>'
-   +'<span>'+tvTagLDC(m.ph)+' <span id="cd-'+m.id+'">'+countdown(m.dt,m.ti)+'</span></span></div>'
+   +'<span>'+tvTagLDC(m.ph)+' <span id="cd-'+m.id+'">'+countdown(m.dt,m.ti,!!res)+'</span></span></div>'
    +(!started&&S.user&&S.user!==ADMIN?'<div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:right">&#128274; Prono jusqu\'au '+new Date(matchKickoff(m.dt,m.ti)).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})+' à '+m.ti+'</div>':'')+'</div>';
 }
 
@@ -2657,7 +2657,10 @@ async function hSaveTeamInline(inp){
 function updateAdminBanner(){var ban=document.getElementById('adm-ban');if(!ban)return;if(adminMode&&isAdmin()){ban.classList.add('on');document.documentElement.style.setProperty('--ban','32px');}else{ban.classList.remove('on');document.documentElement.style.setProperty('--ban','0px');}}
 async function hTogAdm(){if(!isAdmin()){toast('Accès refusé','err');return;}var e=document.getElementById('ame');if(adminMode){adminMode=false;SESSION_PIN=null;updateAdminBanner();toast('Mode admin désactivé');render();return;}var pin=gv('apm');var r=await secureCall('adminVerifyPin',{pin:pin});if(!r.ok){if(e)e.textContent='PIN incorrect.';return;}SESSION_PIN=pin;adminMode=true;updateAdminBanner();toast('Mode admin activé');render();}
 
-function countdown(dt,ti){var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '<span class="cd hot">&#9917; Match débuté</span>';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';}
+function countdown(dt,ti,finished){
+  if(finished)return '<span class="cd" style="color:var(--grn)">&#9989; Match terminé</span>';
+  var kickoff=matchKickoff(dt,ti),diff=kickoff-new Date();if(diff<=0)return '<span class="cd hot">&#9917; Match débuté</span>';var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);var cls=h<2?'hot':h<12?'warm':'ok';var label=h===0?m+'min':h<24?h+'h'+(m>0?m+'min':''):Math.floor(h/24)+'j';return '<span class="cd '+cls+'">&#9201; '+label+'</span>';
+}
 function pendingCount(){if(!S.user||S.user===ADMIN)return 0;var pr=uPronos(S.user),n=0;for(var i=0;i<M.length;i++){var m=M[i];if(new Date().getTime()<matchKickoff(m.dt,m.ti)&&!pr[m.id])n++;}return n;}
 function getMatchesPendingSync(){var now=new Date(),pending=[];for(var i=0;i<M.length;i++){var m=M[i];if(DB.results[m.id])continue;if(now.getTime()>=matchKickoff(m.dt,m.ti)+2*60*60*1000)pending.push(m);}return pending;}
 
@@ -2884,7 +2887,7 @@ setInterval(syncRealtimeState,60000); // ré-évalue chaque minute
 setInterval(function(){
   for(var i=0;i<M.length;i++){
     var el=document.getElementById('cd-'+M[i].id);
-    if(el)el.innerHTML=countdown(M[i].dt,M[i].ti);
+    if(el)el.innerHTML=countdown(M[i].dt,M[i].ti,!!getRes(M[i].id));
   }
 },30000);
 
