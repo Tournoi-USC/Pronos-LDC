@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.2.2';
+var VERSION = '3.2.3';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -791,7 +791,18 @@ function calcPts(pn,r,odds){
   return 0;
 }
 
-function resolveUid(u){if(typeof u==='number')return u;var uu=DB.userMap[u];if(uu)return uu.id;var n=+u;return isNaN(n)?null:n;}
+function resolveUid(u){
+  // Les id utilisateurs sont des UUID (chaînes), pas des nombres — l'ancien
+  // test typeof u==='number' était donc toujours faux pour un id direct,
+  // et la conversion +u qui suivait renvoyait NaN pour un UUID (jamais un
+  // id valide). Bug corrigé le 09/09/2026 : le bonus de joker n'était donc
+  // jamais retrouvé quand pts()/ptBadge() étaient appelées avec un id brut
+  // (ex: classement général) plutôt qu'un pseudo_key (ex: profil).
+  if(u==null)return null;
+  var uu=DB.userMap[u]; // u est peut-être un pseudo_key
+  if(uu)return uu.id;
+  return u; // u est déjà un id (cas normal quand appelé avec uu.id)
+}
 function pts(user){
   var pr=uPronos(user),res=DB.results,p=0,ex=0,ok=0,okd=0,pl=0,ids=Object.keys(pr);
   for(var i=0;i<ids.length;i++){
