@@ -393,7 +393,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.3.3';
+var VERSION = '3.4.1';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -404,14 +404,17 @@ var GROUP_ID = (typeof URLSearchParams!=='undefined')?(new URLSearchParams(windo
 var S={user:null,page:'accueil',tab:'LIGUE',grp:'ALL',cpw:false,avEdit:false,adm:false,qf:'all',statsTab:'global',adminTab:'scores',classTab:'general',regTab:'calculs',profTab:'pronos',jour:'ALL',search:'',searchDate:''};
 var adminMode=false;
 var logoClicks=0,logoTimer=null;
-// Mot de passe / PIN gardés en mémoire UNIQUEMENT pour la session en
-// cours (jamais dans localStorage — persistant indéfiniment — mais dans
-// sessionStorage : survit à un F5/rechargement de l'onglet, disparaît à
-// la fermeture de l'onglet/navigateur). Réutilisés pour autoriser
-// silencieusement les actions suivantes (changer avatar, rafraîchir les
-// jokers...) sans redemander le mot de passe à chaque rechargement.
-var SESSION_PW=sessionStorage.getItem('ldc_pw')||null,SESSION_PIN=null;
-function setSessionPw(pw){SESSION_PW=pw;if(pw)sessionStorage.setItem('ldc_pw',pw);else sessionStorage.removeItem('ldc_pw');}
+// Mot de passe gardé en mémoire pour autoriser silencieusement des actions
+// (changer avatar, rafraîchir les jokers...) sans le redemander à chaque
+// rechargement. PIN, lui, reste en mémoire JS pure (jamais stocké), donc
+// perdu à chaque rechargement de page — comportement volontaire, inchangé.
+// Stocké en localStorage (et non sessionStorage) depuis le 10/09/2026, à la
+// demande de Vero : les jokers ne se rafraîchissaient plus tout seuls après
+// fermeture du navigateur, faute de mot de passe disponible pour rappeler
+// l'API. Compromis assumé : le mot de passe reste en clair sur l'appareil
+// entre deux sessions, au profit du confort (plus jamais de reconnexion).
+var SESSION_PW=localStorage.getItem('ldc_pw')||null,SESSION_PIN=null;
+function setSessionPw(pw){SESSION_PW=pw;if(pw)localStorage.setItem('ldc_pw',pw);else localStorage.removeItem('ldc_pw');}
 var USERS_SAFE_COLS='id,pseudo_key,pseudo_display,avatar,group_id';
 var DB={users:[],userMap:{},pronos:{},results:{},config:{},groups:[],confrontations:[],confrontationGroups:[],assets:{}};
 var sb=null,SB_ERROR='';
@@ -637,7 +640,7 @@ async function doLogin(pseudo,pw,groupId,avatar,pseudoDisplay){
 function doLogout(){
   localStorage.removeItem('ldc_ses');
   localStorage.removeItem('ldc_grp');
-  sessionStorage.removeItem('ldc_pw');
+  localStorage.removeItem('ldc_pw');
   // Navigation réelle (pas juste go()) pour repartir sur l'URL racine,
   // sans le ?g=... du groupe précédemment connecté.
   window.location.href=window.location.origin+window.location.pathname;
@@ -2880,6 +2883,20 @@ function syncRealtimeState(){
   else sb._realtimeDisconnect();
 }
 setInterval(syncRealtimeState,60000); // ré-évalue chaque minute
+// Sondage périodique des jokers, INDÉPENDANT de la fenêtre live Realtime
+// (qui ne pousse rien en dehors d'un match en cours ou du mode admin).
+// Sans ça, un joueur consultant l'app après-coup (le soir, le lendemain)
+// ne voyait jamais un nouveau joker sans rafraîchir manuellement.
+// Ajouté le 10/09/2026.
+setInterval(function(){
+  if(!S.user||S.user===ADMIN||!SESSION_PW)return;
+  secureCall('getMyJokers',{pseudo:S.user,password:SESSION_PW}).then(function(r){
+    if(!r.ok)return;
+    var changed=JSON.stringify(DB_JOKERS)!==JSON.stringify(r.jokers||[]);
+    DB_JOKERS=r.jokers||[];
+    if(changed)render();
+  });
+},120000);
 // Rafraîchit uniquement l'affichage du temps restant avant chaque match,
 // sans re-render complet de la page (qui effacerait un prono en cours de
 // saisie pas encore enregistré). Ne touche que les éléments #cd-{id}
@@ -3012,9 +3029,10 @@ async function init(){
   if(ses&&ses!==ADMIN&&GROUP_ID&&sesGrp!==GROUP_ID){localStorage.removeItem('ldc_ses');localStorage.removeItem('ldc_grp');ses=null;}
   if(ses&&DB.userMap[ses])S.user=ses;
   if(!GROUP_ID&&S.user&&S.user!==ADMIN){var udataR=DB.userMap[S.user];if(udataR&&udataR.group_id){window.location.replace(window.location.pathname+'?g='+udataR.group_id);return;}}
-  // Session restaurée + mot de passe encore disponible (sessionStorage,
-  // survit à un F5) → recharge silencieusement l'inventaire de jokers,
-  // sans quoi il resterait vide jusqu'au prochain clic sur "Rafraîchir".
+  // Session restaurée + mot de passe disponible (localStorage, survit même
+  // à la fermeture du navigateur) → recharge silencieusement l'inventaire
+  // de jokers, sans quoi il resterait vide jusqu'au prochain clic sur
+  // "Rafraîchir".
   if(S.user&&S.user!==ADMIN&&SESSION_PW){
     secureCall('getMyJokers',{pseudo:S.user,password:SESSION_PW}).then(function(r){
       if(r.ok){DB_JOKERS=r.jokers||[];render();}
