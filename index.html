@@ -298,11 +298,19 @@ html:not([data-theme="light"]) .t-purple .ss,html:not([data-theme="light"]) .t-m
   position:sticky;
   top:var(--ban);
   z-index:50;
-  background: color-mix(in srgb, var(--bg) 0%, transparent);
+  /* Même image de fond que le body, fixée de la même façon : s'aligne
+     pixel pour pixel avec le décor derrière, donnant l'impression d'un
+     fond transparent tout en masquant complètement les cartes qui
+     défilent dessous (elles, ne sont pas en position fixed). */
+  background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('images/stadium-ball.webp');
+  background-size:100% 100%,cover;
+  background-position:center top,center -80px;
+  background-attachment:fixed,fixed;
   padding:8px 0 10px;
   margin-bottom:4px;
   border-bottom:1px solid var(--bdr);
 }
+html[data-theme="light"] .matchs-sticky{background-image:linear-gradient(rgba(15,35,84,.58),rgba(15,35,84,.58)),url('images/stadium-ball.webp')}
 @media(max-width:768px){
   .matchs-sticky{
     position:static;
@@ -393,7 +401,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.4.1';
+var VERSION = '3.4.3';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
