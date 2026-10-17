@@ -401,7 +401,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.4.3';
+var VERSION = '3.4.4';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -443,6 +443,31 @@ var JOKER_META={
   loto:{ic:'🎰',name:'Le Loto',desc:'Multiplicateur aléatoire tiré après le résultat : ×0.5, ×1, ×1.5 ou ×2.',target:null}
 };
 var DB_JOKERS=[]; // inventaire du joueur connecté (rempli au login)
+// Joueurs des AUTRES groupes, chargés à la demande (à l'ouverture du
+// formulaire d'activation d'un joker à cible) — DB.users ne contient que
+// son propre groupe. null = pas encore chargé. Ajouté le 12/10/2026.
+var DB_JOKER_TARGETS=null;
+// IDs des groupes qui partagent au moins une confrontation avec mon groupe.
+function opponentGroupIds(){
+  var me=DB.userMap[S.user];if(!me||!me.group_id)return[];
+  var myCfIds=DB.confrontationGroups.filter(function(cg){return cg.group_id===me.group_id;}).map(function(cg){return cg.confrontation_id;});
+  var seen={},out=[];
+  DB.confrontationGroups.forEach(function(cg){
+    if(myCfIds.indexOf(cg.confrontation_id)!==-1&&cg.group_id!==me.group_id&&!seen[cg.group_id]){seen[cg.group_id]=1;out.push(cg.group_id);}
+  });
+  return out;
+}
+async function loadJokerTargets(){
+  var me=DB.userMap[S.user];
+  var list=[];
+  for(var i=0;i<DB.groups.length;i++){
+    var g=DB.groups[i];
+    if(me&&g.id===me.group_id)continue;
+    var r=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',g.id);
+    if(r.data)list=list.concat(r.data.filter(function(u){return u.pseudo_key!==ADMIN;}));
+  }
+  DB_JOKER_TARGETS=list;
+}
 var DB_JOKERS_RESOLVED={}; // {userId:{matchId:bonus_points}} — jokers déjà résolus, visibles publiquement
 // Toutes les écritures sensibles (mdp, PIN, actions admin) passent par
 // cette Edge Function — jamais directement via la clé anon.
@@ -1616,7 +1641,16 @@ function renderMyJokers(){
   return h;
 }
 
-function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;render();}
+async function tActivateJoker(id){
+  var opening=(S.activateJokerId!==id);
+  S.activateJokerId=opening?id:null;
+  render();
+  if(opening&&!DB_JOKER_TARGETS){
+    var j=DB_JOKERS.find(function(x){return x.id===id;});
+    var meta=j&&JOKER_META[j.joker_type];
+    if(meta&&meta.target==='user'){await loadJokerTargets();if(S.activateJokerId===id)render();}
+  }
+}
 
 function jokerActivationForm(j){
   var meta=JOKER_META[j.joker_type];
@@ -1626,9 +1660,23 @@ function jokerActivationForm(j){
   var targetField='';
   if(meta.target==='user'){
     var me=DB.userMap[S.user];
-    var others=DB.users.filter(function(u){return u.id!==(me?me.id:null)&&u.pseudo_key!==ADMIN;});
-    targetField='<select class="fi" id="jok-target-user" style="margin-top:8px"><option value="">— Choisir un joueur cible —</option>'
-      +others.map(function(u){return '<option value="'+u.id+'">'+u.pseudo_display+'</option>';}).join('')+'</select>';
+    var others;
+    var emptyMsg='— Choisir un joueur cible —';
+    if(j.joker_type==='duel'||j.joker_type==='regicide'){
+      // Duel : joueurs des groupes adverses en confrontation avec le mien.
+      // Régicide : joueurs hors de mon groupe. DB.users ne contient que mon
+      // groupe, d'où le chargement à la demande (DB_JOKER_TARGETS).
+      if(!DB_JOKER_TARGETS){others=[];emptyMsg='Chargement des joueurs…';}
+      else{
+        var oppIds=opponentGroupIds();
+        others=DB_JOKER_TARGETS.filter(function(u){return j.joker_type==='regicide'||oppIds.indexOf(u.group_id)!==-1;});
+        if(!others.length)emptyMsg=j.joker_type==='duel'?'Aucun groupe adverse en confrontation pour le moment':'Aucun joueur hors de ton groupe';
+      }
+    }else{
+      others=DB.users.filter(function(u){return u.id!==(me?me.id:null)&&u.pseudo_key!==ADMIN;});
+    }
+    targetField='<select class="fi" id="jok-target-user" style="margin-top:8px"><option value="">'+emptyMsg+'</option>'
+      +others.map(function(u){var gn=groupNameById(u.group_id);return '<option value="'+u.id+'">'+u.pseudo_display+(gn&&u.group_id!==(me?me.group_id:null)?' ('+gn+')':'')+'</option>';}).join('')+'</select>';
   }else if(meta.target==='group'){
     var me2=DB.userMap[S.user];
     var otherGroups=DB.groups.filter(function(g){return!me2||g.id!==me2.group_id;});
