@@ -401,7 +401,7 @@ var SUPABASE_KEY = 'sb_publishable_hL5f3H0tlJv2ry1RZQ5Dew_dLevK2bq';
 
 var ADMIN = 'adminldc';
 
-var VERSION = '3.4.3';
+var VERSION = '3.5.0';
 var BUILD   = '09/08/2026';
 // Synchro automatique du <title> et du badge de version dans la sidebar avec
 // VERSION ci-dessus : plus besoin de les modifier à la main à chaque bump.
@@ -443,6 +443,31 @@ var JOKER_META={
   loto:{ic:'🎰',name:'Le Loto',desc:'Multiplicateur aléatoire tiré après le résultat : ×0.5, ×1, ×1.5 ou ×2.',target:null}
 };
 var DB_JOKERS=[]; // inventaire du joueur connecté (rempli au login)
+// Joueurs des AUTRES groupes, chargés à la demande (à l'ouverture du
+// formulaire d'activation d'un joker à cible) — DB.users ne contient que
+// son propre groupe. null = pas encore chargé. Ajouté le 12/10/2026.
+var DB_JOKER_TARGETS=null;
+// IDs des groupes qui partagent au moins une confrontation avec mon groupe.
+function opponentGroupIds(){
+  var me=DB.userMap[S.user];if(!me||!me.group_id)return[];
+  var myCfIds=DB.confrontationGroups.filter(function(cg){return cg.group_id===me.group_id;}).map(function(cg){return cg.confrontation_id;});
+  var seen={},out=[];
+  DB.confrontationGroups.forEach(function(cg){
+    if(myCfIds.indexOf(cg.confrontation_id)!==-1&&cg.group_id!==me.group_id&&!seen[cg.group_id]){seen[cg.group_id]=1;out.push(cg.group_id);}
+  });
+  return out;
+}
+async function loadJokerTargets(){
+  var me=DB.userMap[S.user];
+  var list=[];
+  for(var i=0;i<DB.groups.length;i++){
+    var g=DB.groups[i];
+    if(me&&g.id===me.group_id)continue;
+    var r=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',g.id);
+    if(r.data)list=list.concat(r.data.filter(function(u){return u.pseudo_key!==ADMIN;}));
+  }
+  DB_JOKER_TARGETS=list;
+}
 var DB_JOKERS_RESOLVED={}; // {userId:{matchId:bonus_points}} — jokers déjà résolus, visibles publiquement
 // Toutes les écritures sensibles (mdp, PIN, actions admin) passent par
 // cette Edge Function — jamais directement via la clé anon.
@@ -666,6 +691,28 @@ async function admReset(pseudo,np,pin){
 }
 
 /* ═══ PRONOS ════════════════════════════════════════════════════ */
+// Lit TOUS les pronos (éventuellement limités à une liste d'user_id), page
+// par page. Indispensable : Supabase plafonne chaque requête à 1000 lignes
+// (db-max-rows). Avec ~20 joueurs, la table pronos dépasse vite 1000 lignes ;
+// un select('*') sans pagination renvoyait alors seulement les 1000 premières
+// (donc PAS les plus récentes) → les pronos enregistrés "disparaissaient"
+// au rechargement de la page. Corrigé le 29/10/2026.
+async function fetchAllPronos(userIds){
+  var all=[],step=1000,offset=0;
+  var filter=(userIds&&userIds.length)?'&user_id=in.('+userIds.join(',')+')':'';
+  while(true){
+    var resp=await fetch(SUPABASE_URL+'/rest/v1/pronos?select=*'+filter+'&order=user_id.asc,match_id.asc&limit='+step+'&offset='+offset,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
+    if(!resp.ok)break;
+    var page=await resp.json();
+    if(!Array.isArray(page))break;
+    all=all.concat(page);
+    if(page.length<step)break;
+    offset+=step;
+  }
+  return all;
+}
 function uPronos(u){if(DB.pronos[u])return DB.pronos[u];var uu=DB.userMap[u];if(uu&&DB.pronos[uu.id])return DB.pronos[uu.id];return{};}
 // Écrit les pronos d'un utilisateur sous SES DEUX clés (id ET pseudo_key),
 // toujours vers le MÊME objet partagé — évite toute divergence entre du
@@ -1429,11 +1476,8 @@ function pgClass(){
         for(var bi=0;bi<extraIds.length;bi+=50){
           var batch=extraIds.slice(bi,bi+50);
           if(!batch.length)continue;
-          var rPr=await fetch(SUPABASE_URL+'/rest/v1/pronos?user_id=in.('+batch.join(',')+')',{
-            headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
-          });
-          var prData=await rPr.json();
-          if(Array.isArray(prData))extraPronos=extraPronos.concat(prData);
+          var prData=await fetchAllPronos(batch);
+          extraPronos=extraPronos.concat(prData);
         }
         var extraPrByUser={};
         extraPronos.forEach(function(p){
@@ -1616,7 +1660,16 @@ function renderMyJokers(){
   return h;
 }
 
-function tActivateJoker(id){S.activateJokerId=(S.activateJokerId===id)?null:id;render();}
+async function tActivateJoker(id){
+  var opening=(S.activateJokerId!==id);
+  S.activateJokerId=opening?id:null;
+  render();
+  if(opening&&!DB_JOKER_TARGETS){
+    var j=DB_JOKERS.find(function(x){return x.id===id;});
+    var meta=j&&JOKER_META[j.joker_type];
+    if(meta&&meta.target==='user'){await loadJokerTargets();if(S.activateJokerId===id)render();}
+  }
+}
 
 function jokerActivationForm(j){
   var meta=JOKER_META[j.joker_type];
@@ -1626,9 +1679,23 @@ function jokerActivationForm(j){
   var targetField='';
   if(meta.target==='user'){
     var me=DB.userMap[S.user];
-    var others=DB.users.filter(function(u){return u.id!==(me?me.id:null)&&u.pseudo_key!==ADMIN;});
-    targetField='<select class="fi" id="jok-target-user" style="margin-top:8px"><option value="">— Choisir un joueur cible —</option>'
-      +others.map(function(u){return '<option value="'+u.id+'">'+u.pseudo_display+'</option>';}).join('')+'</select>';
+    var others;
+    var emptyMsg='— Choisir un joueur cible —';
+    if(j.joker_type==='duel'||j.joker_type==='regicide'){
+      // Duel : joueurs des groupes adverses en confrontation avec le mien.
+      // Régicide : joueurs hors de mon groupe. DB.users ne contient que mon
+      // groupe, d'où le chargement à la demande (DB_JOKER_TARGETS).
+      if(!DB_JOKER_TARGETS){others=[];emptyMsg='Chargement des joueurs…';}
+      else{
+        var oppIds=opponentGroupIds();
+        others=DB_JOKER_TARGETS.filter(function(u){return j.joker_type==='regicide'||oppIds.indexOf(u.group_id)!==-1;});
+        if(!others.length)emptyMsg=j.joker_type==='duel'?'Aucun groupe adverse en confrontation pour le moment':'Aucun joueur hors de ton groupe';
+      }
+    }else{
+      others=DB.users.filter(function(u){return u.id!==(me?me.id:null)&&u.pseudo_key!==ADMIN;});
+    }
+    targetField='<select class="fi" id="jok-target-user" style="margin-top:8px"><option value="">'+emptyMsg+'</option>'
+      +others.map(function(u){var gn=groupNameById(u.group_id);return '<option value="'+u.id+'">'+u.pseudo_display+(gn&&u.group_id!==(me?me.group_id:null)?' ('+gn+')':'')+'</option>';}).join('')+'</select>';
   }else if(meta.target==='group'){
     var me2=DB.userMap[S.user];
     var otherGroups=DB.groups.filter(function(g){return!me2||g.id!==me2.group_id;});
@@ -2724,7 +2791,7 @@ async function autoFetchOdds(){
 async function hSaveAll(){
   if(!S.user||S.user===ADMIN||!sb)return;
   var uu=DB.userMap[S.user];if(!uu){toast('Session expirée','err');return;}
-  var uid=uu.id,records=[],saved=0;
+  var uid=uu.id,records=[],pending=[];
   for(var mi=0;mi<M.length;mi++){
     var m=M[mi];
     var hEl=document.getElementById('ph'+m.id),aEl=document.getElementById('pa'+m.id);
@@ -2733,14 +2800,29 @@ async function hSaveAll(){
     var wpEl=document.getElementById('pwp'+m.id);
     var wp=wpEl?wpEl.value||null:null;
     records.push({user_id:uid,match_id:m.id,home_score:+hEl.value,away_score:+aEl.value,winner_prono:wp,updated_at:new Date().toISOString()});
-    setOneProno(DB.userMap[S.user]?DB.userMap[S.user].id:null,S.user,m.id,{h:+hEl.value,a:+aEl.value,wp:wp});
-    saved++;
+    pending.push({mid:m.id,entry:{h:+hEl.value,a:+aEl.value,wp:wp}});
   }
   if(!records.length){toast('Aucun pronostic à sauvegarder','info');return;}
+  var hdrs={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
   try{
-    var resp=await fetch(SUPABASE_URL+'/rest/v1/pronos?on_conflict=user_id,match_id',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(records)});
-    if(resp.ok||resp.status===201||resp.status===204){toast(saved+' pronostic(s) sauvegardé(s) ✓');render();}
-    else{var txt=await resp.text();toast('Erreur ('+resp.status+'): '+txt,'err');}
+    // return=representation : le serveur renvoie les lignes réellement écrites,
+    // ce qui permet de VÉRIFIER l'enregistrement au lieu de croire un simple 2xx.
+    var resp=await fetch(SUPABASE_URL+'/rest/v1/pronos?on_conflict=user_id,match_id',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(records)});
+    if(!resp.ok){var txt=await resp.text();toast('Erreur ('+resp.status+'): '+txt,'err');return;}
+    var rows=[];try{rows=await resp.json();}catch(e){}
+    var okIds={};(Array.isArray(rows)?rows:[]).forEach(function(r){okIds[r.match_id]=true;});
+    if(Object.keys(okIds).length<records.length){
+      // Réponse incomplète : relecture de contrôle directement en base.
+      var ids=records.map(function(r){return r.match_id;});
+      var vr=await fetch(SUPABASE_URL+'/rest/v1/pronos?select=match_id&user_id=eq.'+uid+'&match_id=in.('+ids.join(',')+')',{headers:hdrs});
+      var vrows=vr.ok?await vr.json():[];
+      okIds={};(Array.isArray(vrows)?vrows:[]).forEach(function(r){okIds[r.match_id]=true;});
+    }
+    var nOk=Object.keys(okIds).length;
+    // On ne met à jour le cache local QUE pour les pronos confirmés en base.
+    pending.forEach(function(pd){if(okIds[pd.mid])setOneProno(uid,S.user,pd.mid,pd.entry);});
+    if(nOk===records.length){toast(nOk+' pronostic(s) sauvegardé(s) ✓');render();}
+    else{toast('⚠️ Seulement '+nOk+' sur '+records.length+' pronostic(s) réellement enregistré(s). Réessaie, et préviens l\'admin si ça persiste.','err');}
   }catch(e){toast('Erreur réseau: '+e.message,'err');}
 }
 function updatePronoCount(){var cnt=document.getElementById('prono-count');if(!cnt)return;var n=0;for(var mi=0;mi<M.length;mi++){var hEl=document.getElementById('ph'+M[mi].id),aEl=document.getElementById('pa'+M[mi].id);if(hEl&&aEl&&!hEl.disabled&&hEl.value!==''&&aEl.value!=='')n++;}cnt.textContent=n;}
@@ -2813,7 +2895,6 @@ async function loadAll(){
       rUg=await sb.from('users').select(USERS_SAFE_COLS).eq('group_id',GROUP_ID);
       if(loggedSes&&loggedSes!==ADMIN)rUses=await sb.from('users').select(USERS_SAFE_COLS).eq('pseudo_key',loggedSes).eq('group_id',GROUP_ID);
     }else{rU=await sb.from('users').select(USERS_SAFE_COLS);}
-    var rP=await sb.from('pronos').select('*');
     var rR=await sb.from('results').select('*');
     var rG=await sb.from('groups').select('*').order('created_at');
     var rCF=await sb.from('confrontations').select('*').order('created_at');
@@ -2822,7 +2903,10 @@ async function loadAll(){
     var seenIds={};users.forEach(function(u){seenIds[u.id]=true;});
     if(rUg&&rUg.data)rUg.data.forEach(function(u){if(!seenIds[u.id]){users.push(u);seenIds[u.id]=true;}});
     if(rUses&&rUses.data)rUses.data.forEach(function(u){if(!seenIds[u.id]&&(!GROUP_ID||u.group_id===GROUP_ID)){users.push(u);seenIds[u.id]=true;}});
-    var pronos=rP.data||[];var results=rR.data||[];
+    // Pronos lus avec pagination (cf. fetchAllPronos) et, hors admin, limités
+    // aux joueurs réellement chargés (propre groupe) au lieu de tout lire puis jeter.
+    var pronos=await fetchAllPronos((GROUP_ID&&!isAdminSession)?users.map(function(u){return u.id;}):null);
+    var results=rR.data||[];
     DB.groups=rG.data||[];
     DB.confrontations=rCF.data||[];
     DB.confrontationGroups=rCFG.data||[];
@@ -2855,8 +2939,8 @@ async function loadAll(){
 
 async function reloadPronos(){
   if(!sb)return;
-  var r=await sb.from('pronos').select('*');var pronos=r.data||[];
   var knownIds={};for(var j=0;j<DB.users.length;j++)knownIds[DB.users[j].id]=DB.users[j];
+  var pronos=await fetchAllPronos(Object.keys(knownIds));
   var byOwner={};
   for(var i=0;i<pronos.length;i++){var p=pronos[i];(byOwner[p.user_id]=byOwner[p.user_id]||[]).push(p);}
   Object.keys(byOwner).forEach(function(uid){
